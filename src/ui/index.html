@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' qrc:; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'none'; object-src 'none'; frame-src 'none'; base-uri 'none'; form-action 'none'">
+  <title>Crow Pack v1.0d - 압축과 풀기 앱</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="qrc:///qtwebchannel/qwebchannel.js"></script>
+</head>
+<body>
+
+  <!-- ========================================================================
+       1. 상단 네비게이션 툴바 (.crow-navbar)
+       ======================================================================== -->
+  <header class="crow-navbar">
+    <div class="nav-left-group">
+      <!-- 정통 칠흑 까마귀(Raven) 로고 (클릭 시 홈으로 이동) -->
+      <div class="nav-brand" id="btnBrandHome" title="초기 홈 화면으로 이동" data-tooltip="초기 홈 화면으로 이동">
+        <div class="brand-crow-logo" id="brandCrowLogo"></div>
+        <div class="brand-title-wrap">
+          <span class="brand-text">
+            Crow Pack
+            <span class="brand-badge">v1.0d</span>
+          </span>
+          <span class="brand-subtext">압축과 풀기 앱</span>
+        </div>
+      </div>
+
+      <!-- [컨텍스트 A: 아카이브 열렸을 때 전용 툴바 - 대형 아이콘 + 툴팁] -->
+      <div class="nav-actions" id="navGroupExplorer" style="display: none;">
+        <!-- [이 폴더에 풀기] -->
+        <button class="tool-icon-btn primary-action" id="btnToolExtractHere" title="현재 폴더에 풀기 (스마트 알아서 풀기)" data-tooltip="현재 폴더에 풀기 (스마트 알아서 풀기)">
+          <span id="iconToolExtractHere"></span>
+        </button>
+
+        <!-- [폴더변경 풀기] -->
+        <button class="tool-icon-btn" id="btnToolExtractCustom" title="폴더 지정하여 풀기" data-tooltip="폴더 지정하여 풀기">
+          <span id="iconToolExtractCustom"></span>
+        </button>
+
+        <!-- [추가] 아카이브에 파일 추가 -->
+        <button class="tool-icon-btn" id="btnToolAdd" title="현재 압축 파일에 파일/폴더 추가" data-tooltip="현재 압축 파일에 파일/폴더 추가">
+          <span id="iconToolAdd"></span>
+        </button>
+
+        <!-- [삭제] 선택 파일 삭제 -->
+        <button class="tool-icon-btn" id="btnToolDelete" title="선택한 파일 삭제" data-tooltip="선택한 파일 삭제">
+          <span id="iconToolDelete"></span>
+        </button>
+
+        <!-- [테스트] 무결성 검사 -->
+        <button class="tool-icon-btn" id="btnToolTest" title="무결성 검사 (손상 테스트)" data-tooltip="무결성 검사 (손상 테스트)">
+          <span id="iconToolTest"></span>
+        </button>
+
+        <!-- [코드페이지] 한글 인코딩 설정 -->
+        <button class="tool-icon-btn" id="btnToolCodePage" title="코드페이지 / 한글 인코딩 설정" data-tooltip="코드페이지 / 한글 인코딩 설정">
+          <span id="iconToolCodePage"></span>
+        </button>
+
+        <!-- [취소 / 닫기] 아카이브 닫고 초기 화면으로 복귀 -->
+        <button class="tool-icon-btn cancel-action" id="btnToolCancel" title="아카이브 닫기 (작업 취소)" data-tooltip="아카이브 닫기 (작업 취소)">
+          <span id="iconToolCancel"></span>
+        </button>
+      </div>
+
+      <!-- [컨텍스트 B: 초기 홈 화면 전용 툴바] -->
+      <div class="nav-actions" id="navGroupHome">
+        <button class="tool-icon-btn" id="btnToolOpenIso" title="ISO 이미지 열기" data-tooltip="ISO 이미지의 파일을 탐색하고 복사">
+          <span id="iconToolOpenIso"></span>
+        </button>
+        <button class="tool-icon-btn" id="btnToolPdfOptimize" title="PDF 무손실 최적화" data-tooltip="화질 손실 없이 PDF 내부 구조와 스트림 최적화">
+          <span id="iconToolPdfOptimize"></span>
+        </button>
+        <button class="tool-icon-btn" id="btnToolUpdate" title="업데이트 확인" data-tooltip="Crow Pack 업데이트 확인">
+          <span id="iconToolUpdate"></span>
+        </button>
+        <button class="tool-icon-btn" id="btnToolAssociations" title="확장자 연결" data-tooltip="Windows 기본 앱에 Crow Pack 연결">
+          <span id="iconToolAssociations"></span>
+        </button>
+      </div>
+    </div>
+
+    <!-- 우측 정보 & 설정 버튼 -->
+    <div class="nav-actions">
+      <button class="tool-icon-btn" id="btnToolInfo" title="정보, 사용법, 제작자 안내" data-tooltip="정보, 사용법, 제작자 안내">
+        <span id="iconToolInfo"></span>
+      </button>
+    </div>
+  </header>
+
+  <!-- ========================================================================
+       2. 메인 뷰 컨테이너 (레이어 전환)
+       ======================================================================== -->
+  <main class="main-stage">
+
+    <!-- ----------------------------------------------------------------------
+         [뷰 1: 초기 홈 화면 (Home)]
+         ---------------------------------------------------------------------- -->
+    <section class="view-layer active" id="viewHome">
+      <div class="home-drop-zone" id="homeDropZone">
+        <!-- 2대 핵심 메인 액션 카드 -->
+        <div class="home-cards-grid">
+          <!-- 카드 1: 압축 파일 열기 -->
+          <div class="action-card open-card" id="btnCardOpenArchive" title="압축 파일 열기" data-tooltip="ALZ, EGG, ZIP, 7Z, RAR 등 탐색 및 해제">
+            <div class="action-card-icon" id="iconCardOpen"></div>
+            <div class="action-card-title">압축 파일 열기</div>
+            <div class="action-card-desc">ALZ, EGG, ZIP, 7Z, RAR 등<br>주요 포맷과 ISO 탐색</div>
+          </div>
+
+          <!-- 카드 2: 새로 압축하기 -->
+          <div class="action-card compress-card" id="btnCardNewCompress" title="새로 압축하기" data-tooltip="시스템별 최적화 압축, 분할 압축 및 암호화 지원">
+            <div class="action-card-icon" id="iconCardCompress"></div>
+            <div class="action-card-title">새로 압축하기</div>
+            <div class="action-card-desc">시스템별 최적화 압축<br>분할 압축 및 암호화 지원</div>
+          </div>
+        </div>
+
+        <p class="home-drop-hint">또는 이곳에 압축 파일이나 압축할 파일/폴더들을 끌어다 놓으세요</p>
+
+        <!-- 지원 포맷 뱃지 -->
+        <div class="format-badges-row">
+          <span class="fmt-badge kr">ALZ</span>
+          <span class="fmt-badge kr">EGG</span>
+          <span class="fmt-badge">ZIP</span>
+          <span class="fmt-badge">7Z</span>
+          <span class="fmt-badge">RAR</span>
+          <span class="fmt-badge">TAR.GZ</span>
+          <span class="fmt-badge">TAR.XZ</span>
+          <span class="fmt-badge">CAB</span>
+          <span class="fmt-badge">ISO</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ----------------------------------------------------------------------
+         [뷰 2: 반디집형 아카이브 탐색기 (Explorer)]
+         ---------------------------------------------------------------------- -->
+    <section class="view-layer" id="viewExplorer">
+      <!-- 브레드크럼 경로 이동 바 -->
+      <div class="explorer-path-bar" id="explorerPathBar">
+        <span class="path-crumb" id="crumbRoot" title="최상위 폴더로 이동" data-tooltip="최상위 폴더로 이동">
+          <span id="iconCrumbFolder"></span>
+          <span id="lblArchiveRootName">아카이브</span>
+        </span>
+        <div id="subPathCrumbs" style="display: flex; align-items: center; gap: 4px;"></div>
+      </div>
+
+      <!-- 파일 목록 그리드 -->
+      <div class="explorer-grid-container" id="explorerGridContainer">
+        <table class="explorer-table" id="tblExplorer">
+          <thead>
+            <tr>
+              <th style="width: 28px;"><input type="checkbox" id="chkSelectAll" title="전체 선택/해제" data-tooltip="전체 선택/해제"></th>
+              <th>이름</th>
+              <th style="width: 80px; text-align: right;">원본 크기</th>
+              <th style="width: 80px; text-align: right;">압축 크기</th>
+              <th style="width: 120px; text-align: center;">수정 일시</th>
+            </tr>
+          </thead>
+          <tbody id="tblExplorerBody">
+            <!-- 동적 렌더링 -->
+          </tbody>
+        </table>
+      </div>
+
+      <!-- 상태 바 -->
+      <footer class="explorer-status-bar">
+        <span id="statExplorerSummary">0개 항목</span>
+        <span id="statExplorerSizes">총 0 B (압축률 0%)</span>
+      </footer>
+    </section>
+
+  </main>
+
+  <!-- ========================================================================
+       3. 레이어 모달들
+       ======================================================================== -->
+
+  <!-- [모달 1: 새로 압축 대화상자] -->
+  <div class="layer-modal-backdrop" id="modalNewCompress">
+    <div class="compact-modal">
+      <div class="modal-header">
+        <span class="modal-title">⚡ 새로 압축하기 (Crow Pack)</span>
+        <button class="modal-close-btn" id="btnCloseNewCompress">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="drop-files-preview-box" id="compressFileListPreview">
+          <div style="padding: 10px; text-align: center; color: var(--text-muted);">
+            압축할 파일이나 폴더를 추가하거나 이곳으로 끌어다 놓으세요.
+          </div>
+        </div>
+
+        <div style="display: flex; gap: 6px;">
+          <button class="btn" id="btnAddSourceFiles" style="flex: 1;">+ 파일 추가</button>
+          <button class="btn" id="btnAddSourceFolder" style="flex: 1;">+ 폴더 추가</button>
+          <button class="btn" id="btnClearSourceList">비우기</button>
+        </div>
+
+        <!-- 2열 서브 옵션 그리드 -->
+        <div class="form-grid-2col">
+          <div class="form-item">
+            <span class="form-label">시스템 최적화 프리셋</span>
+            <select id="selPresetMode" class="form-control">
+              <option value="windows">Windows 호환 (ZIP 표준)</option>
+              <option value="linux">Linux / Server 배포 (TAR.GZ)</option>
+              <option value="macos">macOS / 크로스 (UTF-8 ZIP)</option>
+              <option value="ultra7z">고압축 (7Z LZMA2)</option>
+            </select>
+          </div>
+
+          <div class="form-item">
+            <span class="form-label">압축 형식 (Format)</span>
+            <select id="selCompressFmt" class="form-control">
+              <option value="ZIP">ZIP (표준 호환)</option>
+              <option value="7Z">7Z (초고압축)</option>
+              <option value="TAR.GZ">TAR.GZ (리눅스 배포)</option>
+              <option value="TAR.XZ">TAR.XZ (리눅스 고압축)</option>
+            </select>
+          </div>
+
+          <div class="form-item">
+            <span class="form-label">분할 압축 (Split)</span>
+            <select id="selSplitSize" class="form-control">
+              <option value="0">분할 안 함</option>
+              <option value="10">10 MB (네이버/다음 메일)</option>
+              <option value="25">25 MB (Gmail 대용량)</option>
+              <option value="100">100 MB</option>
+              <option value="700">700 MB (CD)</option>
+              <option value="4400">4.4 GB (DVD)</option>
+            </select>
+          </div>
+
+          <div class="form-item">
+            <span class="form-label">압축률 (Compression Level)</span>
+            <select id="selCompressLevel" class="form-control">
+              <option value="6">보통 (Normal - 권장)</option>
+              <option value="1">빠름 (Fast)</option>
+              <option value="9">최대 압축 (Ultra)</option>
+              <option value="0">압축 안 함 (Store)</option>
+            </select>
+          </div>
+
+          <div class="form-item" style="grid-column: span 2;">
+            <span class="form-label">암호 설정 (선택 사항)</span>
+            <input type="password" id="txtCompressPwd" class="form-control" placeholder="비밀번호를 입력하면 안전하게 암호화됩니다.">
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn" id="btnCancelCompress">취소</button>
+        <button class="btn gold" id="btnCompressHere" title="소스 파일이 있는 현재 폴더에 즉시 저장">
+          ⚡ 이 폴더에 압축
+        </button>
+        <button class="btn primary" id="btnCompressCustom" title="저장할 위치와 파일명을 직접 지정하여 압축">
+          📁 폴더변경 압축
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- [모달 2: 코드페이지 설정] -->
+  <div class="layer-modal-backdrop" id="modalCodePage">
+    <div class="compact-modal" style="width: 400px;">
+      <div class="modal-header">
+        <span class="modal-title">🌐 코드페이지 / 한글 인코딩 설정</span>
+        <button class="modal-close-btn" id="btnCloseCodePage">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size: 11px; color: var(--text-muted); line-height: 1.4;">
+          압축 파일 내 한글 파일명 깨짐을 방지하기 위한 코드페이지를 선택하세요.
+        </p>
+
+        <div style="display: flex; flex-direction: column; gap: 6px;">
+          <label class="form-row" style="cursor: pointer; display: flex; justify-content: space-between; font-size: 12px;">
+            <span>자동 감지 & 한글 자동복원 (기본 권장)</span>
+            <input type="radio" name="radEncoding" value="auto" checked>
+          </label>
+          <label class="form-row" style="cursor: pointer; display: flex; justify-content: space-between; font-size: 12px;">
+            <span>한국어 (CP949 / EUC-KR)</span>
+            <input type="radio" name="radEncoding" value="cp949">
+          </label>
+          <label class="form-row" style="cursor: pointer; display: flex; justify-content: space-between; font-size: 12px;">
+            <span>유니코드 (UTF-8)</span>
+            <input type="radio" name="radEncoding" value="utf-8">
+          </label>
+          <label class="form-row" style="cursor: pointer; display: flex; justify-content: space-between; font-size: 12px;">
+            <span>일본어 (Shift-JIS / CP932)</span>
+            <input type="radio" name="radEncoding" value="shift_jis">
+          </label>
+          <label class="form-row" style="cursor: pointer; display: flex; justify-content: space-between; font-size: 12px;">
+            <span>중국어 간체 (GBK / CP936)</span>
+            <input type="radio" name="radEncoding" value="gbk">
+          </label>
+          <label class="form-row" style="cursor: pointer; display: flex; justify-content: space-between; font-size: 12px; border-top: 1px solid var(--border-subtle); padding-top: 8px;">
+            <span style="color: var(--accent-rose);">한글 자동복원 끄기 (Raw 원본)</span>
+            <input type="radio" name="radEncoding" value="raw">
+          </label>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn primary" id="btnApplyCodePage">적용</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- [모달 3: 정보 & 설정] -->
+  <div class="layer-modal-backdrop" id="modalInfoApp">
+    <div class="compact-modal" style="width: 480px;">
+      <div class="modal-header">
+        <span class="modal-title">ℹ️ Crow Pack 정보 및 설정</span>
+        <button class="modal-close-btn" id="btnCloseInfoModal">&times;</button>
+      </div>
+      <div class="modal-body" style="gap: 14px;">
+        <div style="background: var(--bg-main); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 12px; display: flex; gap: 12px; align-items: center;">
+          <div style="width: 44px; height: 44px;" id="infoCrowLogo"></div>
+          <div>
+            <h4 style="font-size: 13px; font-weight: 700; color: #fff;">Crow Pack v1.0d</h4>
+            <p style="font-size: 11px; color: #c7d2fe; font-weight: 600;">제작: Crow Science Lab</p>
+            <p style="font-size: 10px; color: var(--text-muted);">압축 파일과 ISO 이미지를 안전하게 탐색·복사</p>
+          </div>
+        </div>
+
+        <div style="font-size: 11px; color: var(--text-secondary); line-height: 1.5; background: var(--bg-card); padding: 10px; border-radius: 6px;">
+          <strong style="color: #fff;">💡 사용법 안내:</strong><br>
+          • <strong>압축 해제</strong>: 압축 파일을 열면 상단 툴바에 '이 폴더에 풀기' 또는 '폴더변경 풀기'가 활성화됩니다.<br>
+          • <strong>스마트 알아서 풀기</strong>: 낱개 파일들이 흩어져 바탕화면이 지저분해지는 것을 자동 방지합니다.<br>
+          • <strong>새로 압축</strong>: 파일/폴더를 드래그하여 프리셋/분할/암호를 설정하고 '이 폴더에 압축' 또는 '폴더변경 압축'을 실행합니다.<br>
+          • <strong>ISO 이미지</strong>: 상단 디스크 버튼으로 ISO를 열어 내부 파일을 선택하고 원하는 폴더로 복사합니다. ISO 원본은 수정하지 않습니다.
+        </div>
+
+        <div style="font-size: 11px; color: var(--text-muted); padding: 0 4px;">
+          <span>현재 버전: <strong>v1.0d</strong></span>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn primary" id="btnConfirmInfo">확인</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- [모달 4: 프로그레스 모달] -->
+  <div class="layer-modal-backdrop" id="modalProgress">
+    <div class="compact-modal" style="width: 380px; text-align: center;">
+      <div class="modal-body" style="padding: 24px 16px; gap: 10px;">
+        <h4 id="progressTitleText" style="font-size: 14px; font-weight: 700;">처리 중...</h4>
+        <p id="progressFileText" style="font-size: 11px; color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">준비 중입니다.</p>
+        
+        <div class="progress-bar-wrap">
+          <div class="progress-bar-inner" id="progressBarInner"></div>
+        </div>
+        <span id="progressPercentLbl" style="font-size: 12px; font-weight: 700; color: var(--accent-cyan);">0%</span>
+
+        <div id="progressDoneBtns" style="display: none; justify-content: center; gap: 8px; margin-top: 10px;">
+          <button class="btn gold" id="btnProgressOpenFolder">폴더 열기</button>
+          <button class="btn" id="btnProgressClose">닫기</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- [모달 5: 그림 미리보기] -->
+  <div class="layer-modal-backdrop" id="modalImagePreview">
+    <div class="compact-modal image-preview-modal">
+      <div class="modal-header">
+        <span class="modal-title" id="imagePreviewTitle">그림 미리보기</span>
+        <button class="modal-close-btn" id="btnCloseImagePreview">&times;</button>
+      </div>
+      <div class="modal-body image-preview-body">
+        <img id="imagePreviewContent" alt="압축 파일 내부 그림 미리보기">
+        <p id="imagePreviewMeta"></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- 아카이브 목록 전용 우클릭 메뉴 -->
+  <div class="archive-context-menu" id="archiveContextMenu" role="menu">
+    <button type="button" id="ctxPreviewImage" role="menuitem">그림 미리보기</button>
+    <button type="button" id="ctxOpenFile" role="menuitem">파일 열기</button>
+    <div class="context-separator"></div>
+    <button type="button" id="ctxCopyOut" role="menuitem">선택 항목을 폴더로 복사</button>
+    <button type="button" id="ctxMoveOut" role="menuitem">선택 항목을 폴더로 이동</button>
+    <button type="button" id="ctxDelete" class="danger" role="menuitem">압축 파일에서 삭제</button>
+  </div>
+
+  <!-- 전역 플로팅 툴팁 요소 -->
+  <div id="floatingCrowTooltip"></div>
+
+  <script src="icons.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
