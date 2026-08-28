@@ -131,6 +131,30 @@ class TestCrowPressEngine(unittest.TestCase):
         shutil.copyfile(iso_path, extensionless)
         self.assertEqual(ArchiveManager.detect_format(extensionless), ArchiveFormat.ISO)
 
+    def test_iso_creation_preserves_korean_names_and_content(self):
+        iso_path = os.path.join(self.test_dir, "CrowPack_데이터.iso")
+        created = ArchiveManager.create_iso(
+            [self.sub_dir, self.sample_files[1]],
+            iso_path,
+            volume_label="Crow Pack 자료",
+        )
+        self.assertEqual(created, iso_path)
+        self.assertTrue(os.path.isfile(iso_path))
+
+        info = ArchiveManager.list_archive(iso_path)
+        names = {item["name"] for item in info["items"]}
+        self.assertIn("까마구_자료실/프로젝트_기획서_2026.txt", names)
+        self.assertIn("까마귀_깃털.md", names)
+
+        output_dir = os.path.join(self.test_dir, "created_iso_copy")
+        _, files = ArchiveManager.extract_archive(iso_path, output_dir, mode="current")
+        copied = next(path for path in files if path.endswith("프로젝트_기획서_2026.txt"))
+        with open(copied, encoding="utf-8") as stream:
+            self.assertIn("한국어 한글 인코딩 테스트", stream.read())
+
+        with self.assertRaises(FileExistsError):
+            ArchiveManager.create_iso([self.sample_files[1]], iso_path)
+
 
 if __name__ == "__main__":
     unittest.main()

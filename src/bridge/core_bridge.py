@@ -1,6 +1,6 @@
 """
 Crow Pack - PySide6 WebChannel Core Bridge
-UI와 파이썬 아카이브 엔진 간의 네이티브 양방향 브릿지 (Crow Pack v1.0d)
+UI와 파이썬 아카이브 엔진 간의 네이티브 양방향 브릿지 (Crow Pack v1.0K)
 """
 
 import json
@@ -8,6 +8,8 @@ import os
 import shutil
 import subprocess
 import sys
+import urllib.error
+import urllib.request
 import winreg
 
 from PySide6.QtCore import QBuffer, QByteArray, QIODevice, QObject, Qt, Signal, Slot
@@ -28,7 +30,9 @@ class CoreBridge(QObject):
     _IMAGE_PREVIEW_EXTENSIONS = {".bmp", ".gif", ".jpeg", ".jpg", ".png", ".webp"}
     _MAX_IMAGE_PREVIEW_BYTES = 20 * 1024**2
     _MAX_IMAGE_PREVIEW_PIXELS = 40_000_000
-    APP_VERSION = "1.0d"
+    APP_VERSION = "1.0K"
+    RELEASE_TAG = "v1.0K"
+    LATEST_RELEASE_API = "https://api.github.com/repos/CrowScienceLab/Crow-Pack/releases/latest"
     
     progressEvent = Signal(int, int, str)
 
@@ -395,28 +399,83 @@ class CoreBridge(QObject):
         except Exception as e:
             return json.dumps({"success": False, "error": str(e)}, ensure_ascii=False)
 
+    @Slot(str, str, result=str)
+    def createIsoImage(self, paths_json: str, volume_label: str = "CROW_PACK") -> str:
+        """선택한 파일과 폴더로 Joliet/Rock Ridge 데이터 ISO 생성"""
+        try:
+            paths = json.loads(paths_json)
+            if not paths:
+                raise ValueError("ISO에 넣을 파일이나 폴더가 없습니다.")
+            first_path = os.path.abspath(paths[0])
+            first_name = os.path.basename(first_path.rstrip("\\/"))
+            stem = os.path.splitext(first_name)[0] or "CrowPack_Data"
+            default_output = os.path.join(os.path.dirname(first_path), f"{stem}.iso")
+            output_path, _ = QFileDialog.getSaveFileName(
+                self.parent_widget,
+                "ISO 이미지 저장 위치 - Crow Pack",
+                default_output,
+                "ISO 디스크 이미지 (*.iso)",
+            )
+            if not output_path:
+                return json.dumps({"success": False, "cancelled": True}, ensure_ascii=False)
+
+            def on_progress(cur, tot, filename):
+                self.progressEvent.emit(cur, tot, filename)
+
+            output = ArchiveManager.create_iso(
+                paths,
+                output_path,
+                volume_label=volume_label.strip() or "CROW_PACK",
+                progress_callback=on_progress,
+            )
+            return json.dumps({
+                "success": True,
+                "output_path": output,
+                "output_dir": os.path.dirname(output),
+                "size": os.path.getsize(output),
+            }, ensure_ascii=False)
+        except Exception as e:
+            return json.dumps({"success": False, "error": str(e)}, ensure_ascii=False)
+
     @Slot(result=str)
     def optimizePdf(self) -> str:
-        """PDF를 선택해 이미지 품질을 바꾸지 않는 구조 최적화 실행"""
+        """기존 호출 호환용 무손실 PDF 최적화"""
+        return self._optimize_pdf("lossless")
+
+    @Slot(str, result=str)
+    def optimizePdfPreset(self, preset: str) -> str:
+        """선택한 품질 프리셋으로 PDF 최적화"""
+        return self._optimize_pdf(preset)
+
+    def _optimize_pdf(self, preset: str) -> str:
         try:
+            profile = PdfOptimizer.PRESETS.get(preset)
+            if profile is None:
+                raise ValueError("지원하지 않는 PDF 압축 프리셋입니다.")
             input_path, _ = QFileDialog.getOpenFileName(
                 self.parent_widget,
-                "무손실 최적화할 PDF 선택 - Crow Pack",
+                f"{profile['label']} 처리할 PDF 선택 - Crow Pack",
                 "",
                 "PDF 문서 (*.pdf)",
             )
             if not input_path:
                 return json.dumps({"success": False, "cancelled": True}, ensure_ascii=False)
             stem, _ = os.path.splitext(input_path)
+            suffix = {
+                "lossless": "lossless",
+                "high": "high",
+                "balanced": "balanced",
+                "compact": "compact",
+            }[preset]
             output_path, _ = QFileDialog.getSaveFileName(
                 self.parent_widget,
                 "최적화 PDF 저장 위치 - Crow Pack",
-                f"{stem}_optimized.pdf",
+                f"{stem}_{suffix}.pdf",
                 "PDF 문서 (*.pdf)",
             )
             if not output_path:
                 return json.dumps({"success": False, "cancelled": True}, ensure_ascii=False)
-            result = PdfOptimizer.optimize(input_path, output_path)
+            result = PdfOptimizer.optimize(input_path, output_path, preset=preset)
             result["output_dir"] = os.path.dirname(result.get("output_path") or input_path)
             return json.dumps(result, ensure_ascii=False)
         except Exception as e:
@@ -424,13 +483,43 @@ class CoreBridge(QObject):
 
     @Slot(result=str)
     def checkForUpdates(self) -> str:
-        """현재 버전과 자동 업데이트 구성 상태 반환"""
-        return json.dumps({
-            "success": True,
-            "version": self.APP_VERSION,
-            "update_available": False,
-            "message": "GitHub 릴리스 주소가 아직 등록되지 않아 자동 확인은 대기 중입니다.",
-        }, ensure_ascii=False)
+        """GitHub 최신 릴리스 태그와 현재 버전 비교"""
+        try:
+            if not self.LATEST_RELEASE_API.startswith("https://api.github.com/"):
+                raise ValueError("허용되지 않은 업데이트 주소입니다.")
+            request = urllib.request.Request(  # noqa: S310 - fixed HTTPS GitHub API endpoint
+                self.LATEST_RELEASE_API,
+                headers={
+                    "Accept": "application/vnd.github+json",
+                    "User-Agent": f"Crow-Pack/{self.APP_VERSION}",
+                },
+            )
+            with urllib.request.urlopen(request, timeout=8) as response:  # noqa: S310
+                release = json.load(response)
+            latest_tag = str(release.get("tag_name", "")).strip()
+            if not latest_tag:
+                raise ValueError("최신 릴리스 태그가 비어 있습니다.")
+            update_available = latest_tag.casefold() != self.RELEASE_TAG.casefold()
+            message = (
+                f"새 릴리스 {latest_tag}을 사용할 수 있습니다."
+                if update_available
+                else "현재 최신 버전을 사용하고 있습니다."
+            )
+            return json.dumps({
+                "success": True,
+                "version": self.APP_VERSION,
+                "latest_tag": latest_tag,
+                "update_available": update_available,
+                "release_url": release.get("html_url", ""),
+                "message": message,
+            }, ensure_ascii=False)
+        except (urllib.error.URLError, TimeoutError, ValueError, OSError) as e:
+            return json.dumps({
+                "success": False,
+                "version": self.APP_VERSION,
+                "update_available": False,
+                "error": f"GitHub 릴리스를 확인할 수 없습니다: {e}",
+            }, ensure_ascii=False)
 
     @Slot(result=str)
     def registerFileAssociations(self) -> str:

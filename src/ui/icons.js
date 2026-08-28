@@ -1,5 +1,5 @@
 /**
- * Crow Pack - Crow Signature Vector Iconography (v1.0d)
+ * Crow Pack - Crow Signature Vector Iconography (v1.0K)
  * 정통 칠흑의 까마귀(Crow/Raven) 본연의 흑요석 블랙 부리와 깃털 실루엣
  */
 
@@ -73,6 +73,15 @@ const CrowIcons = {
       <circle cx="12" cy="12" r="2.5"/>
       <path d="M12 3a9 9 0 0 1 9 9"/>
       <path d="M5.6 18.4 9.5 14.5"/>
+    </svg>
+  `,
+
+  isoCreate: `
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="10" cy="12" r="7.5"/>
+      <circle cx="10" cy="12" r="2"/>
+      <path d="M10 4.5a7.5 7.5 0 0 1 7.5 7.5"/>
+      <path d="M19 15v6M16 18h6"/>
     </svg>
   `,
 

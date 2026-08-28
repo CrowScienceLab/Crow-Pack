@@ -293,6 +293,17 @@ class ArchiveManager:
         else:
             return ZipHandler.compress(source_paths, output_path, preset=preset, level=level, password=password, progress_callback=progress_callback)
 
+    @classmethod
+    def create_iso(cls, source_paths: List[str], output_path: str, volume_label: str = "CROW_PACK",
+                   progress_callback: Optional[Callable[[int, int, str], None]] = None) -> str:
+        """Create a Windows/Linux-compatible data ISO image."""
+        return IsoHandler.create(
+            source_paths,
+            output_path,
+            volume_label=volume_label,
+            progress_callback=progress_callback,
+        )
+
     @staticmethod
     def _split_file(file_path: str, chunk_size_bytes: int):
         """생성된 파일을 지정된 크기의 볼륨 파일(.001, .002...)로 분할"""

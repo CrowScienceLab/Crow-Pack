@@ -1,5 +1,5 @@
 /**
- * Crow Pack v1.0d - Frontend Interaction Logic
+ * Crow Pack v1.0K - Frontend Interaction Logic
  * 칠흑 까마귀 테마, 툴바 컨텍스트 전환, 플로팅 툴팁 엔진 및 드래그앤드롭
  */
 
@@ -20,6 +20,7 @@ const AppState = {
   currentDirectory: '', // 탐색기 내부 가상 디렉터리
   selectedItems: new Set(),
   compressSourcePaths: [],
+  isoSourcePaths: [],
   selectedEncoding: 'auto',
   lastExtractedFolder: null,
   contextEntry: null,
@@ -162,6 +163,7 @@ function initIcons() {
   setHtml('iconToolExtractHere', I.extractHere || I.extract);
   setHtml('iconToolExtractCustom', I.extractCustom || I.folder);
   setHtml('iconToolOpenIso', I.isoDisc);
+  setHtml('iconToolCreateIso', I.isoCreate || I.isoDisc);
   setHtml('iconToolPdfOptimize', I.pdfOptimize);
   setHtml('iconToolUpdate', I.update);
   setHtml('iconToolAssociations', I.association);
@@ -182,6 +184,17 @@ function initIcons() {
 function initFloatingTooltips() {
   const tooltipEl = document.getElementById('floatingCrowTooltip');
   if (!tooltipEl) return;
+
+  // Custom tooltip and the browser's delayed native tooltip must not overlap.
+  // Preserve the accessible name, then remove native `title` only from elements
+  // managed by this tooltip engine.
+  document.querySelectorAll('[data-tooltip]').forEach((target) => {
+    const text = target.getAttribute('data-tooltip');
+    if (text && !target.hasAttribute('aria-label')) {
+      target.setAttribute('aria-label', text);
+    }
+    target.removeAttribute('title');
+  });
 
   document.addEventListener('mouseover', (e) => {
     const target = e.target.closest('[data-tooltip]');
@@ -269,10 +282,12 @@ function showExplorerView(archiveInfo) {
   const customButton = document.getElementById('btnToolExtractCustom');
   const hereLabel = isReadOnly ? 'ISO 파일을 현재 폴더로 복사' : '현재 폴더에 풀기 (스마트 알아서 풀기)';
   const customLabel = isReadOnly ? 'ISO 파일을 지정 폴더로 복사' : '폴더 지정하여 풀기';
-  hereButton.title = hereLabel;
+  hereButton.setAttribute('aria-label', hereLabel);
   hereButton.dataset.tooltip = hereLabel;
-  customButton.title = customLabel;
+  hereButton.removeAttribute('title');
+  customButton.setAttribute('aria-label', customLabel);
   customButton.dataset.tooltip = customLabel;
+  customButton.removeAttribute('title');
 
   renderExplorer();
 }
@@ -491,6 +506,11 @@ function openFileTemp(itemName) {
 function handleDroppedFiles(filePaths) {
   if (!filePaths || filePaths.length === 0) return;
 
+  if (document.getElementById('modalCreateIso').classList.contains('active')) {
+    addPathsToIso(filePaths);
+    return;
+  }
+
   const firstPath = filePaths[0];
   const isArchive = /\.(zip|alz|egg|7z|rar|tar|gz|tgz|bz2|tbz2|xz|txz|cab|iso)$/i.test(firstPath);
 
@@ -582,6 +602,46 @@ function renderCompressSourceList() {
   }
 }
 
+function addPathsToIso(paths) {
+  if (!paths || paths.length === 0) return;
+  const currentSet = new Set(AppState.isoSourcePaths);
+  paths.forEach((path) => currentSet.add(path));
+  AppState.isoSourcePaths = Array.from(currentSet);
+  renderIsoSourceList();
+}
+
+function renderIsoSourceList() {
+  const container = document.getElementById('isoFileListPreview');
+  container.innerHTML = '';
+
+  if (AppState.isoSourcePaths.length === 0) {
+    const hint = document.createElement('div');
+    hint.className = 'empty-list-hint';
+    hint.textContent = 'ISO에 넣을 파일이나 폴더를 추가하거나 이곳으로 끌어다 놓으세요.';
+    container.appendChild(hint);
+    return;
+  }
+
+  AppState.isoSourcePaths.forEach((path, index) => {
+    const item = document.createElement('div');
+    item.className = 'drop-file-item';
+    const label = document.createElement('span');
+    label.title = path;
+    label.textContent = `📁 ${path.split(/[\\/]/).pop()}`;
+    const remove = document.createElement('button');
+    remove.className = 'source-remove-btn';
+    remove.type = 'button';
+    remove.title = '제거';
+    remove.textContent = '×';
+    remove.onclick = () => {
+      AppState.isoSourcePaths.splice(index, 1);
+      renderIsoSourceList();
+    };
+    item.append(label, remove);
+    container.appendChild(item);
+  });
+}
+
 // --------------------------------------------------------------------------
 // 6. 모달 제어
 // --------------------------------------------------------------------------
@@ -591,6 +651,21 @@ function openNewCompressModal() {
 }
 function closeNewCompressModal() {
   document.getElementById('modalNewCompress').classList.remove('active');
+}
+
+function openCreateIsoModal() {
+  document.getElementById('modalCreateIso').classList.add('active');
+  renderIsoSourceList();
+}
+function closeCreateIsoModal() {
+  document.getElementById('modalCreateIso').classList.remove('active');
+}
+
+function openPdfOptimizeModal() {
+  document.getElementById('modalPdfOptimize').classList.add('active');
+}
+function closePdfOptimizeModal() {
+  document.getElementById('modalPdfOptimize').classList.remove('active');
 }
 
 function openCodePageModal() {
@@ -644,7 +719,7 @@ function initNativeBridge() {
   if (typeof QWebChannel !== 'undefined') {
     new QWebChannel(qt.webChannelTransport, (channel) => {
       AppState.pyBridge = channel.objects.coreBridge;
-      console.log('PySide6 Native Bridge Connected (Crow Pack v1.0d)!');
+      console.log('PySide6 Native Bridge Connected (Crow Pack v1.0K)!');
 
       AppState.pyBridge.progressEvent.connect((current, total, file) => {
         updateProgress(current, total, file);
@@ -686,10 +761,18 @@ function initEvents() {
     }
   };
 
-  document.getElementById('btnToolPdfOptimize').onclick = () => {
+  document.getElementById('btnToolCreateIso').onclick = openCreateIsoModal;
+
+  document.getElementById('btnToolPdfOptimize').onclick = openPdfOptimizeModal;
+  document.getElementById('btnClosePdfOptimize').onclick = closePdfOptimizeModal;
+  document.getElementById('btnCancelPdfOptimize').onclick = closePdfOptimizeModal;
+  document.getElementById('btnRunPdfOptimize').onclick = () => {
+    const selected = document.querySelector('input[name="pdfPreset"]:checked');
+    const preset = selected ? selected.value : 'balanced';
     if (!AppState.pyBridge) return;
-    showProgress('PDF 무손실 최적화 중...', 'PDF를 선택하세요.');
-    AppState.pyBridge.optimizePdf((resJson) => {
+    closePdfOptimizeModal();
+    showProgress('PDF 용량 줄이는 중...', '원본을 보호하며 새 PDF로 저장합니다.');
+    AppState.pyBridge.optimizePdfPreset(preset, (resJson) => {
       const result = JSON.parse(resJson);
       if (!result.success) {
         hideProgress();
@@ -702,7 +785,7 @@ function initEvents() {
         return;
       }
       finishProgress(
-        `${result.message} ${formatBytes(result.saved_bytes)} 절감`,
+        `${result.message}${result.saved_bytes ? ` (${formatBytes(result.saved_bytes)} 절감)` : ''}`,
         result.output_dir
       );
     });
@@ -712,7 +795,11 @@ function initEvents() {
     if (!AppState.pyBridge) return;
     AppState.pyBridge.checkForUpdates((resJson) => {
       const result = JSON.parse(resJson);
-      alert(`Crow Pack v${result.version}\n${result.message}`);
+      if (result.success) {
+        alert(`Crow Pack v${result.version}\n${result.message}`);
+      } else {
+        alert(`업데이트 확인 실패\n${result.error}`);
+      }
     });
   };
 
@@ -843,7 +930,8 @@ function initEvents() {
       const encTitle = labelMap[AppState.selectedEncoding] || '자동 감지';
       const btn = document.getElementById('btnToolCodePage');
       btn.setAttribute('data-tooltip', `코드페이지: ${encTitle}`);
-      btn.setAttribute('title', `코드페이지: ${encTitle}`);
+      btn.setAttribute('aria-label', `코드페이지: ${encTitle}`);
+      btn.removeAttribute('title');
       closeCodePageModal();
 
       if (AppState.currentArchiveInfo) {
@@ -897,6 +985,44 @@ function initEvents() {
   document.getElementById('btnClearSourceList').onclick = () => {
     AppState.compressSourcePaths = [];
     renderCompressSourceList();
+  };
+
+  // ISO 만들기 모달
+  document.getElementById('btnCloseCreateIso').onclick = closeCreateIsoModal;
+  document.getElementById('btnCancelCreateIso').onclick = closeCreateIsoModal;
+  document.getElementById('btnIsoAddFiles').onclick = () => {
+    if (!AppState.pyBridge) return;
+    AppState.pyBridge.selectSourceFiles((pathsJson) => addPathsToIso(JSON.parse(pathsJson)));
+  };
+  document.getElementById('btnIsoAddFolder').onclick = () => {
+    if (!AppState.pyBridge) return;
+    AppState.pyBridge.selectSourceFolder((pathsJson) => addPathsToIso(JSON.parse(pathsJson)));
+  };
+  document.getElementById('btnIsoClear').onclick = () => {
+    AppState.isoSourcePaths = [];
+    renderIsoSourceList();
+  };
+  document.getElementById('btnCreateIso').onclick = () => {
+    if (!AppState.pyBridge || AppState.isoSourcePaths.length === 0) {
+      alert('ISO에 넣을 파일이나 폴더를 추가해주세요.');
+      return;
+    }
+    const volumeLabel = document.getElementById('txtIsoVolumeLabel').value.trim() || 'CROW_PACK';
+    closeCreateIsoModal();
+    showProgress('ISO 이미지 만드는 중...', '파일 구조를 기록하고 있습니다.');
+    AppState.pyBridge.createIsoImage(
+      JSON.stringify(AppState.isoSourcePaths),
+      volumeLabel,
+      (resJson) => {
+        const result = JSON.parse(resJson);
+        if (result.success) {
+          finishProgress(`ISO 생성 완료: ${result.output_path}`, result.output_dir);
+        } else {
+          hideProgress();
+          if (!result.cancelled) alert('ISO 생성 실패: ' + result.error);
+        }
+      }
+    );
   };
 
   document.getElementById('selPresetMode').onchange = (e) => {

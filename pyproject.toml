@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "crow-pack"
-version = "1.0.0.dev4"
+version = "1.0.0.dev11"
 description = "Windows desktop archive manager with Korean filename support"
 readme = "README.md"
 requires-python = ">=3.10,<3.15"
@@ -14,6 +14,7 @@ dependencies = [
   "py7zr>=1.1.3,<2",
   "pycdlib>=1.20.0,<2",
   "pypdf>=6.16.2,<7",
+  "Pillow>=12.3.0,<13",
   "pyzipper>=0.4.0,<0.5",
   "rarfile>=4.5,<5",
 ]

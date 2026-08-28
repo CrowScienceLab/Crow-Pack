@@ -48,6 +48,7 @@ def main() -> int:
             "(() => {"
             "const buttons = Array.from(document.querySelectorAll('button[id]'));"
             "if (!buttons.length || buttons.some(button => typeof button.onclick !== 'function')) return false;"
+            "if (document.querySelector('[data-tooltip][title]')) return false;"
             "if (typeof hideArchiveContextMenu !== 'function' || "
             "typeof window.setNativeDragActive !== 'function') return false;"
             "showExplorerView({format:'ZIP', filename:'smoke.zip', file_path:'smoke.zip', "
@@ -63,7 +64,15 @@ def main() -> int:
             "showHomeView(); window.setNativeDragActive(true);"
             "const neon = document.getElementById('homeDropZone').classList.contains('dragover');"
             "window.setNativeDragActive(false);"
-            "return neon && typeof window.handleNativeDrop === 'function';"
+            "document.getElementById('btnToolCreateIso').click();"
+            "if (!document.getElementById('modalCreateIso').classList.contains('active')) return false;"
+            "document.getElementById('btnCancelCreateIso').click();"
+            "document.getElementById('btnToolPdfOptimize').click();"
+            "if (!document.getElementById('modalPdfOptimize').classList.contains('active')) return false;"
+            "document.querySelector('input[name=\"pdfPreset\"][value=\"compact\"]').click();"
+            "const presetOk = document.querySelector('input[name=\"pdfPreset\"]:checked').value === 'compact';"
+            "document.getElementById('btnCancelPdfOptimize').click();"
+            "return neon && presetOk && typeof window.handleNativeDrop === 'function';"
             "})()",
             on_dom_checked,
         )

@@ -1,9 +1,10 @@
-"""PDF lossless optimization regression tests."""
+"""PDF preset optimization regression tests."""
 
 import os
 import shutil
 import unittest
 
+from PIL import Image
 from pypdf import PdfReader, PdfWriter
 from pypdf.generic import DecodedStreamObject, NameObject
 
@@ -31,7 +32,7 @@ class TestPdfOptimizer(unittest.TestCase):
         result = PdfOptimizer.optimize(source, output)
 
         self.assertTrue(result["success"])
-        self.assertEqual(result["output_path"], output)
+        self.assertEqual(result["output_path"], output, result)
         self.assertLess(os.path.getsize(output), os.path.getsize(source))
         verified = PdfReader(output, strict=True)
         self.assertEqual(len(verified.pages), 1)
@@ -44,6 +45,21 @@ class TestPdfOptimizer(unittest.TestCase):
         writer.write(source)
         with self.assertRaises(ValueError):
             PdfOptimizer.optimize(source, source)
+
+    def test_balanced_preset_recompresses_large_photo(self):
+        source = os.path.join(self.workspace, "photo_source.pdf")
+        output = os.path.join(self.workspace, "photo_balanced.pdf")
+        photo = Image.effect_noise((2400, 1800), 70).convert("RGB")
+        photo.save(source, "PDF", quality=100, resolution=300)
+
+        result = PdfOptimizer.optimize(source, output, preset="balanced")
+
+        self.assertTrue(result["success"])
+        self.assertEqual(result["output_path"], output, result)
+        self.assertGreaterEqual(result["images_processed"], 1)
+        self.assertLess(os.path.getsize(output), os.path.getsize(source))
+        verified = PdfReader(output, strict=True)
+        self.assertEqual(len(verified.pages), 1)
 
 
 if __name__ == "__main__":

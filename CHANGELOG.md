@@ -1,5 +1,25 @@
 # Changelog
 
+## [1.0K] - 2026-08-29
+
+### Added
+
+- ISO 9660 level 3 data-image creation with Joliet and Rock Ridge names.
+- Four PDF size-reduction presets: lossless, high quality, balanced, and compact.
+- Per-user Windows installer with Start Menu and optional desktop shortcuts.
+- Live GitHub release update checks.
+
+### Fixed
+
+- Removed the delayed second browser tooltip while retaining accessible labels.
+- Connected every ISO/PDF modal control and expanded UI smoke coverage for all buttons.
+- Corrected photo classification so downsampled colour sampling does not skip photographic images.
+
+### Security
+
+- ISO and PDF outputs use validated temporary files and never overwrite existing files.
+- PDF optimization refuses encrypted or digitally signed documents.
+
 ## [1.0d] - 2026-08-28
 
 ### Added

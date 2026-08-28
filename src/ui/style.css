@@ -1,5 +1,5 @@
 /* ==========================================================================
-   Crow Pack v1.0d - Modern Obsidian Dark UI with Large Icon Toolbars & Tooltips
+   Crow Pack v1.0K - Modern Obsidian Dark UI with Large Icon Toolbars & Tooltips
    대형 아이콘 툴바 & 전역 플로팅 툴팁 시스템
    ========================================================================== */
 
@@ -742,6 +742,84 @@ body {
 .drop-file-item:hover {
   background: var(--bg-card);
   color: var(--text-primary);
+}
+
+.source-remove-btn {
+  background: transparent;
+  border: 0;
+  color: var(--accent-rose);
+  cursor: pointer;
+  font-size: 16px;
+  line-height: 1;
+}
+
+.modal-help-text,
+.preset-note {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.empty-list-hint {
+  padding: 18px 10px;
+  text-align: center;
+  color: var(--text-muted);
+}
+
+.pdf-preset-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.pdf-preset-card {
+  position: relative;
+  display: grid;
+  grid-template-columns: 20px 1fr;
+  gap: 3px 7px;
+  align-items: center;
+  padding: 11px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  background: var(--bg-main);
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.pdf-preset-card:hover,
+.pdf-preset-card:has(input:checked) {
+  border-color: var(--accent-indigo);
+  background: rgba(79, 70, 229, 0.12);
+}
+
+.pdf-preset-card input {
+  grid-row: 1 / span 2;
+  width: 16px;
+  height: 16px;
+}
+
+.pdf-preset-title {
+  color: var(--text-primary);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.pdf-preset-desc {
+  color: var(--text-muted);
+  font-size: 10px;
+}
+
+.preset-badge {
+  position: absolute;
+  top: 6px;
+  right: 7px;
+  padding: 2px 5px;
+  border-radius: 8px;
+  background: #3730a3;
+  color: #e0e7ff;
+  font-size: 9px;
+  font-weight: 700;
 }
 
 /* 버튼 */

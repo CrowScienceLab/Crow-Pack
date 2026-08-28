@@ -2,7 +2,7 @@
 
 ## Supported version
 
-Security fixes are prepared for the latest `1.0d` release line.
+Security fixes are prepared for the latest `1.0K` release line.
 
 ## Reporting a vulnerability
 

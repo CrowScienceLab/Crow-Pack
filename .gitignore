@@ -10,6 +10,8 @@ htmlcov/
 build/
 dist/
 release/*.zip
+release/*.exe
+release/*.sha256
 *.spec
 *.egg-info/
 *.tmp

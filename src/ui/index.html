@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' qrc:; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'none'; object-src 'none'; frame-src 'none'; base-uri 'none'; form-action 'none'">
-  <title>Crow Pack v1.0d - 압축과 풀기 앱</title>
+  <title>Crow Pack v1.0K - 압축과 풀기 앱</title>
   <link rel="stylesheet" href="style.css">
   <script src="qrc:///qtwebchannel/qwebchannel.js"></script>
 </head>
@@ -21,7 +21,7 @@
         <div class="brand-title-wrap">
           <span class="brand-text">
             Crow Pack
-            <span class="brand-badge">v1.0d</span>
+            <span class="brand-badge">v1.0K</span>
           </span>
           <span class="brand-subtext">압축과 풀기 앱</span>
         </div>
@@ -70,7 +70,10 @@
         <button class="tool-icon-btn" id="btnToolOpenIso" title="ISO 이미지 열기" data-tooltip="ISO 이미지의 파일을 탐색하고 복사">
           <span id="iconToolOpenIso"></span>
         </button>
-        <button class="tool-icon-btn" id="btnToolPdfOptimize" title="PDF 무손실 최적화" data-tooltip="화질 손실 없이 PDF 내부 구조와 스트림 최적화">
+        <button class="tool-icon-btn" id="btnToolCreateIso" title="ISO 이미지 만들기" data-tooltip="파일과 폴더로 Windows/Linux 호환 ISO 만들기">
+          <span id="iconToolCreateIso"></span>
+        </button>
+        <button class="tool-icon-btn" id="btnToolPdfOptimize" title="PDF 용량 줄이기" data-tooltip="무손실·고화질·균형·최소 용량 프리셋">
           <span id="iconToolPdfOptimize"></span>
         </button>
         <button class="tool-icon-btn" id="btnToolUpdate" title="업데이트 확인" data-tooltip="Crow Pack 업데이트 확인">
@@ -261,7 +264,78 @@
     </div>
   </div>
 
-  <!-- [모달 2: 코드페이지 설정] -->
+  <!-- [모달 2: ISO 이미지 만들기] -->
+  <div class="layer-modal-backdrop" id="modalCreateIso">
+    <div class="compact-modal" style="width: 560px;">
+      <div class="modal-header">
+        <span class="modal-title">💿 ISO 이미지 만들기</span>
+        <button class="modal-close-btn" id="btnCloseCreateIso">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p class="modal-help-text">일반 데이터 ISO를 만듭니다. Windows용 Joliet와 Linux용 Rock Ridge 파일명을 함께 기록합니다.</p>
+        <div class="drop-files-preview-box" id="isoFileListPreview">
+          <div class="empty-list-hint">ISO에 넣을 파일이나 폴더를 추가하세요.</div>
+        </div>
+        <div style="display: flex; gap: 6px;">
+          <button class="btn" id="btnIsoAddFiles" style="flex: 1;">+ 파일 추가</button>
+          <button class="btn" id="btnIsoAddFolder" style="flex: 1;">+ 폴더 추가</button>
+          <button class="btn" id="btnIsoClear">비우기</button>
+        </div>
+        <div class="form-item">
+          <span class="form-label">디스크 이름</span>
+          <input type="text" id="txtIsoVolumeLabel" class="form-control" maxlength="32" value="CROW_PACK" placeholder="CROW_PACK">
+        </div>
+        <div class="preset-note">부팅 ISO와 4 GiB 이상 단일 파일은 지원하지 않습니다. 원본 파일은 변경되지 않습니다.</div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn" id="btnCancelCreateIso">취소</button>
+        <button class="btn primary" id="btnCreateIso">💿 ISO 만들기</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- [모달 3: PDF 용량 줄이기] -->
+  <div class="layer-modal-backdrop" id="modalPdfOptimize">
+    <div class="compact-modal" style="width: 590px;">
+      <div class="modal-header">
+        <span class="modal-title">📄 PDF 용량 줄이기</span>
+        <button class="modal-close-btn" id="btnClosePdfOptimize">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p class="modal-help-text">세부 수치는 Crow Pack이 자동으로 적용합니다. 텍스트와 벡터는 유지하고, 선택한 단계에 따라 큰 그림을 조정합니다.</p>
+        <div class="pdf-preset-grid">
+          <label class="pdf-preset-card">
+            <input type="radio" name="pdfPreset" value="lossless">
+            <span class="pdf-preset-title">무손실 최적화</span>
+            <span class="pdf-preset-desc">그림 변경 없이 내부 구조만 정리</span>
+          </label>
+          <label class="pdf-preset-card">
+            <input type="radio" name="pdfPreset" value="high">
+            <span class="pdf-preset-title">고화질</span>
+            <span class="pdf-preset-desc">인쇄용, 큰 그림 최대 약 2,480px</span>
+          </label>
+          <label class="pdf-preset-card recommended">
+            <input type="radio" name="pdfPreset" value="balanced" checked>
+            <span class="preset-badge">권장</span>
+            <span class="pdf-preset-title">균형</span>
+            <span class="pdf-preset-desc">일반 공유용, 품질과 크기의 균형</span>
+          </label>
+          <label class="pdf-preset-card">
+            <input type="radio" name="pdfPreset" value="compact">
+            <span class="pdf-preset-title">최소 용량</span>
+            <span class="pdf-preset-desc">화면 열람용, 가장 강한 그림 최적화</span>
+          </label>
+        </div>
+        <div class="preset-note">전자서명·암호화 PDF는 보호를 위해 처리하지 않으며, 원본을 덮어쓰지 않습니다.</div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn" id="btnCancelPdfOptimize">취소</button>
+        <button class="btn primary" id="btnRunPdfOptimize">선택한 품질로 저장</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- [모달 4: 코드페이지 설정] -->
   <div class="layer-modal-backdrop" id="modalCodePage">
     <div class="compact-modal" style="width: 400px;">
       <div class="modal-header">
@@ -317,7 +391,7 @@
         <div style="background: var(--bg-main); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 12px; display: flex; gap: 12px; align-items: center;">
           <div style="width: 44px; height: 44px;" id="infoCrowLogo"></div>
           <div>
-            <h4 style="font-size: 13px; font-weight: 700; color: #fff;">Crow Pack v1.0d</h4>
+            <h4 style="font-size: 13px; font-weight: 700; color: #fff;">Crow Pack v1.0K</h4>
             <p style="font-size: 11px; color: #c7d2fe; font-weight: 600;">제작: Crow Science Lab</p>
             <p style="font-size: 10px; color: var(--text-muted);">압축 파일과 ISO 이미지를 안전하게 탐색·복사</p>
           </div>
@@ -328,11 +402,12 @@
           • <strong>압축 해제</strong>: 압축 파일을 열면 상단 툴바에 '이 폴더에 풀기' 또는 '폴더변경 풀기'가 활성화됩니다.<br>
           • <strong>스마트 알아서 풀기</strong>: 낱개 파일들이 흩어져 바탕화면이 지저분해지는 것을 자동 방지합니다.<br>
           • <strong>새로 압축</strong>: 파일/폴더를 드래그하여 프리셋/분할/암호를 설정하고 '이 폴더에 압축' 또는 '폴더변경 압축'을 실행합니다.<br>
-          • <strong>ISO 이미지</strong>: 상단 디스크 버튼으로 ISO를 열어 내부 파일을 선택하고 원하는 폴더로 복사합니다. ISO 원본은 수정하지 않습니다.
+          • <strong>ISO 이미지</strong>: 상단 버튼으로 ISO를 열거나 일반 데이터 ISO를 새로 만들 수 있습니다.<br>
+          • <strong>PDF 용량 줄이기</strong>: 무손실·고화질·균형·최소 용량 중 하나만 선택하면 세부 설정은 자동 적용됩니다.
         </div>
 
         <div style="font-size: 11px; color: var(--text-muted); padding: 0 4px;">
-          <span>현재 버전: <strong>v1.0d</strong></span>
+          <span>현재 버전: <strong>v1.0K</strong></span>
         </div>
       </div>
       <div class="modal-footer">
