@@ -21,16 +21,271 @@ const AppState = {
   selectedItems: new Set(),
   compressSourcePaths: [],
   isoSourcePaths: [],
+  isoTab: 'read',
   selectedEncoding: 'auto',
+  language: 'ko',
+  theme: 'dark',
   lastExtractedFolder: null,
   contextEntry: null,
   pyBridge: null
 };
 
 const IMAGE_PREVIEW_PATTERN = /\.(bmp|gif|jpe?g|png|webp)$/i;
+const ISO_PATTERN = /\.iso$/i;
+
+const TRANSLATIONS = {
+  ko: {
+    'nav.iso': 'ISO 이미지',
+    'nav.pdf': 'PDF 용량 조절',
+    'nav.update': '업데이트 확인',
+    'nav.association': '앱 확장자 연결',
+    'nav.info': '정보와 사용법',
+    'iso.title': '💿 ISO 이미지',
+    'iso.readTab': 'ISO 읽기',
+    'iso.createTab': 'ISO 만들기',
+    'iso.readHelp': 'ISO 안의 파일을 안전하게 탐색하고 원하는 항목을 폴더로 복사합니다.',
+    'iso.dropTitle': 'ISO 이미지를 이곳에 끌어다 놓으세요',
+    'iso.dropHint': '또는 아래 버튼으로 ISO 파일을 선택하세요.',
+    'iso.select': 'ISO 파일 선택',
+    'iso.createHelp': '일반 데이터 ISO를 만듭니다. Windows용 Joliet와 Linux용 Rock Ridge 파일명을 함께 기록합니다.',
+    'iso.empty': 'ISO에 넣을 파일이나 폴더를 추가하세요.',
+    'iso.addFiles': '+ 파일 추가',
+    'iso.addFolder': '+ 폴더 추가',
+    'iso.volume': '디스크 이름',
+    'iso.limit': '부팅 ISO와 4 GiB 이상 단일 파일은 지원하지 않습니다. 원본 파일은 변경되지 않습니다.',
+    'iso.create': '💿 ISO 만들기',
+    'common.clear': '비우기',
+    'common.close': '닫기',
+    'common.confirm': '확인',
+    'info.title': 'ℹ️ 정보와 사용법',
+    'info.author': '제작: Crow Science Lab',
+    'info.summary': '압축 파일과 ISO 이미지를 안전하게 탐색·복사',
+    'info.help': '<strong>💡 사용법 안내:</strong><br>• <strong>압축 해제</strong>: 압축 파일을 열면 상단 도구로 현재 폴더 또는 지정 폴더에 풀 수 있습니다.<br>• <strong>새로 압축</strong>: 파일/폴더를 끌어다 놓고 압축 프리셋·분할·암호를 설정합니다.<br>• <strong>ISO 이미지</strong>: 읽기 탭은 ISO를 탐색·복사하고, 만들기 탭은 일반 데이터 ISO를 생성합니다.<br>• <strong>PDF 용량 조절</strong>: 네 가지 품질 단계 중 하나를 선택하면 세부 설정은 자동 적용됩니다.',
+    'settings.title': '⚙ 화면 설정',
+    'settings.language': '언어',
+    'settings.theme': '색 테마',
+    'theme.dark': 'Black (기본)'
+  },
+  en: {
+    'nav.iso': 'ISO Image',
+    'nav.pdf': 'PDF Size',
+    'nav.update': 'Check Updates',
+    'nav.association': 'File Associations',
+    'nav.info': 'Help & Info',
+    'iso.title': '💿 ISO Image',
+    'iso.readTab': 'Read ISO',
+    'iso.createTab': 'Create ISO',
+    'iso.readHelp': 'Browse an ISO safely and copy selected files to a folder.',
+    'iso.dropTitle': 'Drop an ISO image here',
+    'iso.dropHint': 'Or select an ISO file with the button below.',
+    'iso.select': 'Select ISO File',
+    'iso.createHelp': 'Create a data ISO with Windows Joliet and Linux Rock Ridge file names.',
+    'iso.empty': 'Add files or folders to include in the ISO.',
+    'iso.addFiles': '+ Add Files',
+    'iso.addFolder': '+ Add Folder',
+    'iso.volume': 'Volume label',
+    'iso.limit': 'Bootable ISOs and individual files of 4 GiB or larger are not supported. Source files are unchanged.',
+    'iso.create': '💿 Create ISO',
+    'common.clear': 'Clear',
+    'common.close': 'Close',
+    'common.confirm': 'OK',
+    'info.title': 'ℹ️ Help & Info',
+    'info.author': 'By Crow Science Lab',
+    'info.summary': 'Safely browse, extract, and copy archives and ISO images',
+    'info.help': '<strong>💡 Quick guide:</strong><br>• <strong>Extract</strong>: Open an archive, then extract to the current folder or a chosen folder.<br>• <strong>Create archive</strong>: Drop files or folders, then choose a preset, splitting, and password.<br>• <strong>ISO Image</strong>: Read and copy from an ISO, or create a standard data ISO in the second tab.<br>• <strong>PDF Size</strong>: Choose one of four quality levels and Crow Pack applies the detailed settings.',
+    'settings.title': '⚙ Display settings',
+    'settings.language': 'Language',
+    'settings.theme': 'Color theme',
+    'theme.dark': 'Black (default)'
+  }
+};
+
+const STATIC_UI_TRANSLATIONS = {
+  ko: {
+    text: {
+      '.brand-subtext': '압축과 풀기 앱',
+      '#btnCardOpenArchive .action-card-title': '압축 파일 열기',
+      '#btnCardNewCompress .action-card-title': '새로 압축하기',
+      '.home-drop-hint': '또는 이곳에 압축 파일이나 압축할 파일/폴더들을 끌어다 놓으세요',
+      '#tblExplorer thead th:nth-child(2)': '이름',
+      '#tblExplorer thead th:nth-child(3)': '원본 크기',
+      '#tblExplorer thead th:nth-child(4)': '압축 크기',
+      '#tblExplorer thead th:nth-child(5)': '수정 일시',
+      '#modalNewCompress .modal-title': '⚡ 새로 압축하기 (Crow Pack)',
+      '#btnAddSourceFiles': '+ 파일 추가', '#btnAddSourceFolder': '+ 폴더 추가', '#btnClearSourceList': '비우기',
+      '#btnCancelCompress': '취소', '#btnCompressHere': '⚡ 이 폴더에 압축', '#btnCompressCustom': '📁 폴더변경 압축',
+      '#modalNewCompress .form-item:nth-child(1) .form-label': '시스템 최적화 프리셋',
+      '#modalNewCompress .form-item:nth-child(2) .form-label': '압축 형식',
+      '#modalNewCompress .form-item:nth-child(3) .form-label': '분할 압축',
+      '#modalNewCompress .form-item:nth-child(4) .form-label': '압축률',
+      '#modalNewCompress .form-item:nth-child(5) .form-label': '암호 설정 (선택 사항)',
+      '#selPresetMode option[value="windows"]': 'Windows 호환 (ZIP 표준)',
+      '#selPresetMode option[value="linux"]': 'Linux / Server 배포 (TAR.GZ)',
+      '#selPresetMode option[value="macos"]': 'macOS / 크로스 (UTF-8 ZIP)',
+      '#selPresetMode option[value="ultra7z"]': '고압축 (7Z LZMA2)',
+      '#selSplitSize option[value="0"]': '분할 안 함',
+      '#selCompressLevel option[value="6"]': '보통 (권장)',
+      '#selCompressLevel option[value="1"]': '빠름',
+      '#selCompressLevel option[value="9"]': '최대 압축',
+      '#selCompressLevel option[value="0"]': '압축 안 함',
+      '#modalPdfOptimize .modal-title': '📄 PDF 용량 조절',
+      '#modalPdfOptimize .modal-help-text': '세부 수치는 Crow Pack이 자동으로 적용합니다. 텍스트와 벡터는 유지하고, 선택한 단계에 따라 큰 그림을 조정합니다.',
+      '.pdf-preset-card:nth-child(1) .pdf-preset-title': '무손실 최적화',
+      '.pdf-preset-card:nth-child(1) .pdf-preset-desc': '그림 변경 없이 내부 구조만 정리',
+      '.pdf-preset-card:nth-child(2) .pdf-preset-title': '고화질',
+      '.pdf-preset-card:nth-child(2) .pdf-preset-desc': '인쇄용, 큰 그림 최대 약 2,480px',
+      '.pdf-preset-card:nth-child(3) .pdf-preset-title': '균형',
+      '.pdf-preset-card:nth-child(3) .pdf-preset-desc': '일반 공유용, 품질과 크기의 균형',
+      '.pdf-preset-card:nth-child(3) .preset-badge': '권장',
+      '.pdf-preset-card:nth-child(4) .pdf-preset-title': '최소 용량',
+      '.pdf-preset-card:nth-child(4) .pdf-preset-desc': '화면 열람용, 가장 강한 그림 최적화',
+      '#modalPdfOptimize .preset-note': '전자서명·암호화 PDF는 보호를 위해 처리하지 않으며, 원본을 덮어쓰지 않습니다.',
+      '#btnCancelPdfOptimize': '취소', '#btnRunPdfOptimize': '선택한 품질로 저장',
+      '#modalCodePage .modal-title': '🌐 코드페이지 / 한글 인코딩 설정',
+      '#modalCodePage .modal-help-text': '압축 파일 내 한글 파일명 깨짐을 방지하기 위한 코드페이지를 선택하세요.',
+      '#modalCodePage .form-row:nth-child(1) span': '자동 감지 & 한글 자동복원 (기본 권장)',
+      '#modalCodePage .form-row:nth-child(2) span': '한국어 (CP949 / EUC-KR)',
+      '#modalCodePage .form-row:nth-child(3) span': '유니코드 (UTF-8)',
+      '#modalCodePage .form-row:nth-child(4) span': '일본어 (Shift-JIS / CP932)',
+      '#modalCodePage .form-row:nth-child(5) span': '중국어 간체 (GBK / CP936)',
+      '#modalCodePage .form-row:nth-child(6) span': '한글 자동복원 끄기 (Raw 원본)',
+      '#btnApplyCodePage': '적용',
+      '#ctxPreviewImage': '그림 미리보기', '#ctxOpenFile': '파일 열기',
+      '#ctxCopyOut': '선택 항목을 폴더로 복사', '#ctxMoveOut': '선택 항목을 폴더로 이동',
+      '#ctxDelete': '압축 파일에서 삭제', '#imagePreviewTitle': '그림 미리보기',
+      '#btnProgressOpenFolder': '폴더 열기', '#btnProgressClose': '닫기'
+    },
+    html: {
+      '#btnCardOpenArchive .action-card-desc': 'ALZ, EGG, ZIP, 7Z, RAR 등<br>주요 포맷과 ISO 탐색',
+      '#btnCardNewCompress .action-card-desc': '시스템별 최적화 압축<br>분할 압축 및 암호화 지원'
+    }
+  },
+  en: {
+    text: {
+      '.brand-subtext': 'Archive Manager',
+      '#btnCardOpenArchive .action-card-title': 'Open Archive',
+      '#btnCardNewCompress .action-card-title': 'Create Archive',
+      '.home-drop-hint': 'Or drop an archive, files, or folders here',
+      '#tblExplorer thead th:nth-child(2)': 'Name',
+      '#tblExplorer thead th:nth-child(3)': 'Original size',
+      '#tblExplorer thead th:nth-child(4)': 'Packed size',
+      '#tblExplorer thead th:nth-child(5)': 'Modified',
+      '#modalNewCompress .modal-title': '⚡ Create Archive (Crow Pack)',
+      '#btnAddSourceFiles': '+ Add Files', '#btnAddSourceFolder': '+ Add Folder', '#btnClearSourceList': 'Clear',
+      '#btnCancelCompress': 'Cancel', '#btnCompressHere': '⚡ Save Here', '#btnCompressCustom': '📁 Choose Destination',
+      '#modalNewCompress .form-item:nth-child(1) .form-label': 'Optimized preset',
+      '#modalNewCompress .form-item:nth-child(2) .form-label': 'Archive format',
+      '#modalNewCompress .form-item:nth-child(3) .form-label': 'Split archive',
+      '#modalNewCompress .form-item:nth-child(4) .form-label': 'Compression level',
+      '#modalNewCompress .form-item:nth-child(5) .form-label': 'Password (optional)',
+      '#selPresetMode option[value="windows"]': 'Windows compatible (standard ZIP)',
+      '#selPresetMode option[value="linux"]': 'Linux / Server (TAR.GZ)',
+      '#selPresetMode option[value="macos"]': 'macOS / Cross-platform (UTF-8 ZIP)',
+      '#selPresetMode option[value="ultra7z"]': 'High compression (7Z LZMA2)',
+      '#selSplitSize option[value="0"]': 'Do not split',
+      '#selCompressLevel option[value="6"]': 'Normal (recommended)',
+      '#selCompressLevel option[value="1"]': 'Fast',
+      '#selCompressLevel option[value="9"]': 'Maximum',
+      '#selCompressLevel option[value="0"]': 'Store only',
+      '#modalPdfOptimize .modal-title': '📄 Adjust PDF Size',
+      '#modalPdfOptimize .modal-help-text': 'Crow Pack applies the detailed settings automatically. Text and vectors stay intact while large images are adjusted for the selected level.',
+      '.pdf-preset-card:nth-child(1) .pdf-preset-title': 'Lossless',
+      '.pdf-preset-card:nth-child(1) .pdf-preset-desc': 'Clean internal structure without changing images',
+      '.pdf-preset-card:nth-child(2) .pdf-preset-title': 'High Quality',
+      '.pdf-preset-card:nth-child(2) .pdf-preset-desc': 'For print, large images up to about 2,480 px',
+      '.pdf-preset-card:nth-child(3) .pdf-preset-title': 'Balanced',
+      '.pdf-preset-card:nth-child(3) .pdf-preset-desc': 'Recommended balance for everyday sharing',
+      '.pdf-preset-card:nth-child(3) .preset-badge': 'Recommended',
+      '.pdf-preset-card:nth-child(4) .pdf-preset-title': 'Smallest',
+      '.pdf-preset-card:nth-child(4) .pdf-preset-desc': 'Strongest image optimization for screen viewing',
+      '#modalPdfOptimize .preset-note': 'Signed or encrypted PDFs are left unchanged, and the source file is never overwritten.',
+      '#btnCancelPdfOptimize': 'Cancel', '#btnRunPdfOptimize': 'Save with Selected Quality',
+      '#modalCodePage .modal-title': '🌐 Filename Encoding',
+      '#modalCodePage .modal-help-text': 'Choose how Crow Pack should recover legacy archive filenames.',
+      '#modalCodePage .form-row:nth-child(1) span': 'Auto-detect and repair Korean names (recommended)',
+      '#modalCodePage .form-row:nth-child(2) span': 'Korean (CP949 / EUC-KR)',
+      '#modalCodePage .form-row:nth-child(3) span': 'Unicode (UTF-8)',
+      '#modalCodePage .form-row:nth-child(4) span': 'Japanese (Shift-JIS / CP932)',
+      '#modalCodePage .form-row:nth-child(5) span': 'Simplified Chinese (GBK / CP936)',
+      '#modalCodePage .form-row:nth-child(6) span': 'Disable filename repair (raw names)',
+      '#btnApplyCodePage': 'Apply',
+      '#ctxPreviewImage': 'Preview Image', '#ctxOpenFile': 'Open File',
+      '#ctxCopyOut': 'Copy Selected Items to Folder', '#ctxMoveOut': 'Move Selected Items to Folder',
+      '#ctxDelete': 'Delete from Archive', '#imagePreviewTitle': 'Image Preview',
+      '#btnProgressOpenFolder': 'Open Folder', '#btnProgressClose': 'Close'
+    },
+    html: {
+      '#btnCardOpenArchive .action-card-desc': 'ALZ, EGG, ZIP, 7Z, RAR and more<br>Browse archives and ISO images',
+      '#btnCardNewCompress .action-card-desc': 'Optimized presets<br>Splitting and encryption'
+    }
+  }
+};
+
+function applyStaticUiTranslations(language) {
+  const translations = STATIC_UI_TRANSLATIONS[language] || STATIC_UI_TRANSLATIONS.ko;
+  Object.entries(translations.text).forEach(([selector, value]) => {
+    const element = document.querySelector(selector);
+    if (element) element.textContent = value;
+  });
+  Object.entries(translations.html).forEach(([selector, value]) => {
+    const element = document.querySelector(selector);
+    if (element) element.innerHTML = value;
+  });
+}
+
+function savePreference(key, value) {
+  try { localStorage.setItem(`crowPack.${key}`, value); } catch (_error) { /* private/local mode */ }
+}
+
+function loadPreference(key, fallback) {
+  try { return localStorage.getItem(`crowPack.${key}`) || fallback; } catch (_error) { return fallback; }
+}
+
+function applyTheme(theme) {
+  const allowed = new Set(['dark', 'bright-skyblue', 'white-pink']);
+  AppState.theme = allowed.has(theme) ? theme : 'dark';
+  document.body.dataset.theme = AppState.theme;
+  const radio = document.querySelector(`input[name="appTheme"][value="${AppState.theme}"]`);
+  if (radio) radio.checked = true;
+  savePreference('theme', AppState.theme);
+}
+
+function applyLanguage(language) {
+  AppState.language = TRANSLATIONS[language] ? language : 'ko';
+  const dictionary = TRANSLATIONS[AppState.language];
+  document.documentElement.lang = AppState.language;
+  document.querySelectorAll('[data-i18n]').forEach((element) => {
+    const translated = dictionary[element.dataset.i18n];
+    if (translated !== undefined) element.textContent = translated;
+  });
+  document.querySelectorAll('[data-i18n-html]').forEach((element) => {
+    const translated = dictionary[element.dataset.i18nHtml];
+    if (translated !== undefined) element.innerHTML = translated;
+  });
+  applyStaticUiTranslations(AppState.language);
+  const selector = document.getElementById('selAppLanguage');
+  if (selector) selector.value = AppState.language;
+  const tooltipText = AppState.language === 'en'
+    ? ['Read or create an ISO image', 'Optimize PDF size with quality presets', 'Check for Crow Pack updates', 'Connect Crow Pack to Windows file extensions', 'Help, app information, language, and display theme']
+    : ['ISO 이미지 읽기 또는 만들기', '품질 프리셋으로 PDF 용량 조절', 'Crow Pack 업데이트 확인', 'Windows 기본 앱에 Crow Pack 연결', '정보, 사용법, 언어 및 화면 테마 설정'];
+  ['btnToolIsoImage', 'btnToolPdfOptimize', 'btnToolUpdate', 'btnToolAssociations', 'btnToolInfo'].forEach((id, index) => {
+    const button = document.getElementById(id);
+    if (!button) return;
+    button.dataset.tooltip = tooltipText[index];
+    button.setAttribute('aria-label', tooltipText[index]);
+    button.removeAttribute('title');
+  });
+  if (document.getElementById('compressFileListPreview')) renderCompressSourceList();
+  if (document.getElementById('isoFileListPreview')) renderIsoSourceList();
+  savePreference('language', AppState.language);
+}
 
 function setNativeDragActive(active) {
-  const dropZone = document.getElementById('homeDropZone');
+  const isoModal = document.getElementById('modalIsoImage');
+  const useIsoReadZone = isoModal && isoModal.classList.contains('active') && AppState.isoTab === 'read';
+  const dropZone = useIsoReadZone
+    ? document.getElementById('isoOpenDropZone')
+    : document.getElementById('homeDropZone');
   if (dropZone) dropZone.classList.toggle('dragover', Boolean(active));
 }
 window.setNativeDragActive = setNativeDragActive;
@@ -162,8 +417,8 @@ function initIcons() {
 
   setHtml('iconToolExtractHere', I.extractHere || I.extract);
   setHtml('iconToolExtractCustom', I.extractCustom || I.folder);
-  setHtml('iconToolOpenIso', I.isoDisc);
-  setHtml('iconToolCreateIso', I.isoCreate || I.isoDisc);
+  setHtml('iconToolIsoImage', I.isoDisc);
+  setHtml('iconIsoDrop', I.isoDisc);
   setHtml('iconToolPdfOptimize', I.pdfOptimize);
   setHtml('iconToolUpdate', I.update);
   setHtml('iconToolAssociations', I.association);
@@ -506,8 +761,18 @@ function openFileTemp(itemName) {
 function handleDroppedFiles(filePaths) {
   if (!filePaths || filePaths.length === 0) return;
 
-  if (document.getElementById('modalCreateIso').classList.contains('active')) {
-    addPathsToIso(filePaths);
+  const isoModal = document.getElementById('modalIsoImage');
+  if (isoModal.classList.contains('active')) {
+    if (AppState.isoTab === 'read') {
+      if (filePaths.length !== 1 || !ISO_PATTERN.test(filePaths[0])) {
+        alert(AppState.language === 'en' ? 'Drop one .iso file.' : '.iso 파일 한 개만 끌어다 놓아 주세요.');
+        return;
+      }
+      closeIsoImageModal();
+      openArchiveFile(filePaths[0]);
+    } else {
+      addPathsToIso(filePaths);
+    }
     return;
   }
 
@@ -557,7 +822,10 @@ function renderCompressSourceList() {
   const paths = AppState.compressSourcePaths;
 
   if (paths.length === 0) {
-    container.innerHTML = '<div style="padding: 10px; text-align: center; color: var(--text-muted);">압축할 파일이나 폴더를 추가하거나 이곳으로 끌어다 놓으세요.</div>';
+    const message = AppState.language === 'en'
+      ? 'Add files or folders, or drop them here.'
+      : '압축할 파일이나 폴더를 추가하거나 이곳으로 끌어다 놓으세요.';
+    container.innerHTML = `<div style="padding: 10px; text-align: center; color: var(--text-muted);">${message}</div>`;
     return;
   }
 
@@ -566,7 +834,9 @@ function renderCompressSourceList() {
   const totalInfo = document.createElement('div');
   totalInfo.style.cssText = 'font-weight: 700; color: #c7d2fe; margin-bottom: 6px;';
   totalInfo.id = 'lblCompressTotalInfo';
-  totalInfo.textContent = `총 ${paths.length}개 항목 등록됨 (상세 분석 중...)`;
+  totalInfo.textContent = AppState.language === 'en'
+    ? `${paths.length} items added (analyzing...)`
+    : `총 ${paths.length}개 항목 등록됨 (상세 분석 중...)`;
   container.appendChild(totalInfo);
 
   paths.forEach((p, idx) => {
@@ -595,7 +865,9 @@ function renderCompressSourceList() {
       if (details.success) {
         const lbl = document.getElementById('lblCompressTotalInfo');
         if (lbl) {
-          lbl.textContent = `총 ${details.file_count}개 파일 (${formatBytes(details.total_size)})`;
+          lbl.textContent = AppState.language === 'en'
+            ? `${details.file_count} files (${formatBytes(details.total_size)})`
+            : `총 ${details.file_count}개 파일 (${formatBytes(details.total_size)})`;
         }
       }
     });
@@ -617,7 +889,9 @@ function renderIsoSourceList() {
   if (AppState.isoSourcePaths.length === 0) {
     const hint = document.createElement('div');
     hint.className = 'empty-list-hint';
-    hint.textContent = 'ISO에 넣을 파일이나 폴더를 추가하거나 이곳으로 끌어다 놓으세요.';
+    hint.textContent = AppState.language === 'en'
+      ? 'Add files or folders, or drop them here for the ISO.'
+      : 'ISO에 넣을 파일이나 폴더를 추가하거나 이곳으로 끌어다 놓으세요.';
     container.appendChild(hint);
     return;
   }
@@ -653,12 +927,30 @@ function closeNewCompressModal() {
   document.getElementById('modalNewCompress').classList.remove('active');
 }
 
-function openCreateIsoModal() {
-  document.getElementById('modalCreateIso').classList.add('active');
-  renderIsoSourceList();
+function setIsoTab(tabName) {
+  AppState.isoTab = tabName === 'create' ? 'create' : 'read';
+  const isRead = AppState.isoTab === 'read';
+  document.getElementById('btnIsoTabRead').classList.toggle('active', isRead);
+  document.getElementById('btnIsoTabRead').setAttribute('aria-selected', String(isRead));
+  document.getElementById('btnIsoTabCreate').classList.toggle('active', !isRead);
+  document.getElementById('btnIsoTabCreate').setAttribute('aria-selected', String(!isRead));
+  document.getElementById('isoReadPanel').hidden = !isRead;
+  document.getElementById('isoReadPanel').classList.toggle('active', isRead);
+  document.getElementById('isoCreatePanel').hidden = isRead;
+  document.getElementById('isoCreatePanel').classList.toggle('active', !isRead);
+  document.getElementById('btnCreateIso').hidden = isRead;
+  setNativeDragActive(false);
+  if (!isRead) renderIsoSourceList();
 }
-function closeCreateIsoModal() {
-  document.getElementById('modalCreateIso').classList.remove('active');
+
+function openIsoImageModal() {
+  document.getElementById('modalIsoImage').classList.add('active');
+  setIsoTab('read');
+}
+
+function closeIsoImageModal() {
+  document.getElementById('modalIsoImage').classList.remove('active');
+  setNativeDragActive(false);
 }
 
 function openPdfOptimizeModal() {
@@ -753,15 +1045,21 @@ function initEvents() {
     openNewCompressModal();
   };
 
-  document.getElementById('btnToolOpenIso').onclick = () => {
+  document.getElementById('btnToolIsoImage').onclick = openIsoImageModal;
+  document.getElementById('btnIsoSelectFile').onclick = () => {
     if (AppState.pyBridge) {
       AppState.pyBridge.selectIsoFile((filePath) => {
-        if (filePath) openArchiveFile(filePath);
+        if (filePath) {
+          closeIsoImageModal();
+          openArchiveFile(filePath);
+        }
       });
     }
   };
-
-  document.getElementById('btnToolCreateIso').onclick = openCreateIsoModal;
+  document.getElementById('btnIsoTabRead').onclick = () => setIsoTab('read');
+  document.getElementById('btnIsoTabCreate').onclick = () => setIsoTab('create');
+  document.getElementById('btnCloseIsoImage').onclick = closeIsoImageModal;
+  document.getElementById('btnCancelIsoImage').onclick = closeIsoImageModal;
 
   document.getElementById('btnToolPdfOptimize').onclick = openPdfOptimizeModal;
   document.getElementById('btnClosePdfOptimize').onclick = closePdfOptimizeModal;
@@ -944,6 +1242,12 @@ function initEvents() {
   document.getElementById('btnToolInfo').onclick = openInfoModal;
   document.getElementById('btnCloseInfoModal').onclick = closeInfoModal;
   document.getElementById('btnConfirmInfo').onclick = closeInfoModal;
+  document.getElementById('selAppLanguage').onchange = (event) => applyLanguage(event.target.value);
+  document.querySelectorAll('input[name="appTheme"]').forEach((radio) => {
+    radio.onchange = () => {
+      if (radio.checked) applyTheme(radio.value);
+    };
+  });
 
   document.getElementById('btnCloseImagePreview').onclick = () => {
     document.getElementById('modalImagePreview').classList.remove('active');
@@ -987,9 +1291,7 @@ function initEvents() {
     renderCompressSourceList();
   };
 
-  // ISO 만들기 모달
-  document.getElementById('btnCloseCreateIso').onclick = closeCreateIsoModal;
-  document.getElementById('btnCancelCreateIso').onclick = closeCreateIsoModal;
+  // ISO 만들기 탭
   document.getElementById('btnIsoAddFiles').onclick = () => {
     if (!AppState.pyBridge) return;
     AppState.pyBridge.selectSourceFiles((pathsJson) => addPathsToIso(JSON.parse(pathsJson)));
@@ -1008,7 +1310,7 @@ function initEvents() {
       return;
     }
     const volumeLabel = document.getElementById('txtIsoVolumeLabel').value.trim() || 'CROW_PACK';
-    closeCreateIsoModal();
+    closeIsoImageModal();
     showProgress('ISO 이미지 만드는 중...', '파일 구조를 기록하고 있습니다.');
     AppState.pyBridge.createIsoImage(
       JSON.stringify(AppState.isoSourcePaths),
@@ -1109,22 +1411,19 @@ function initEvents() {
   window.addEventListener('dragover', (e) => {
     e.preventDefault();
     e.stopPropagation();
-    const dropZone = document.getElementById('homeDropZone');
-    if (dropZone) dropZone.classList.add('dragover');
+    setNativeDragActive(true);
   });
 
   window.addEventListener('dragleave', (e) => {
     e.preventDefault();
     e.stopPropagation();
-    const dropZone = document.getElementById('homeDropZone');
-    if (dropZone) dropZone.classList.remove('dragover');
+    setNativeDragActive(false);
   });
 
   window.addEventListener('drop', (e) => {
     e.preventDefault();
     e.stopPropagation();
-    const dropZone = document.getElementById('homeDropZone');
-    if (dropZone) dropZone.classList.remove('dragover');
+    setNativeDragActive(false);
 
     // 전체 로컬 경로는 Qt 뷰의 네이티브 dropEvent에서 한 번만 전달한다.
   });
@@ -1135,6 +1434,8 @@ function initEvents() {
 // --------------------------------------------------------------------------
 document.addEventListener('DOMContentLoaded', () => {
   initIcons();
+  applyTheme(loadPreference('theme', 'dark'));
+  applyLanguage(loadPreference('language', 'ko'));
   initFloatingTooltips();
   initEvents();
   initNativeBridge();

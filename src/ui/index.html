@@ -67,29 +67,27 @@
 
       <!-- [컨텍스트 B: 초기 홈 화면 전용 툴바] -->
       <div class="nav-actions" id="navGroupHome">
-        <button class="tool-icon-btn" id="btnToolOpenIso" title="ISO 이미지 열기" data-tooltip="ISO 이미지의 파일을 탐색하고 복사">
-          <span id="iconToolOpenIso"></span>
+        <button class="tool-icon-btn labeled-tool-btn" id="btnToolIsoImage" title="ISO 이미지" data-tooltip="ISO 이미지 읽기 또는 만들기">
+          <span id="iconToolIsoImage"></span>
+          <span class="tool-btn-label" data-i18n="nav.iso">ISO 이미지</span>
         </button>
-        <button class="tool-icon-btn" id="btnToolCreateIso" title="ISO 이미지 만들기" data-tooltip="파일과 폴더로 Windows/Linux 호환 ISO 만들기">
-          <span id="iconToolCreateIso"></span>
-        </button>
-        <button class="tool-icon-btn" id="btnToolPdfOptimize" title="PDF 용량 줄이기" data-tooltip="무손실·고화질·균형·최소 용량 프리셋">
+        <button class="tool-icon-btn labeled-tool-btn" id="btnToolPdfOptimize" title="PDF 용량 조절" data-tooltip="무손실·고화질·균형·최소 용량 프리셋">
           <span id="iconToolPdfOptimize"></span>
+          <span class="tool-btn-label" data-i18n="nav.pdf">PDF 용량 조절</span>
         </button>
-        <button class="tool-icon-btn" id="btnToolUpdate" title="업데이트 확인" data-tooltip="Crow Pack 업데이트 확인">
+        <button class="tool-icon-btn labeled-tool-btn" id="btnToolUpdate" title="업데이트 확인" data-tooltip="Crow Pack 업데이트 확인">
           <span id="iconToolUpdate"></span>
+          <span class="tool-btn-label" data-i18n="nav.update">업데이트 확인</span>
         </button>
-        <button class="tool-icon-btn" id="btnToolAssociations" title="확장자 연결" data-tooltip="Windows 기본 앱에 Crow Pack 연결">
+        <button class="tool-icon-btn labeled-tool-btn" id="btnToolAssociations" title="앱 확장자 연결" data-tooltip="Windows 기본 앱에 Crow Pack 연결">
           <span id="iconToolAssociations"></span>
+          <span class="tool-btn-label" data-i18n="nav.association">앱 확장자 연결</span>
+        </button>
+        <button class="tool-icon-btn labeled-tool-btn" id="btnToolInfo" title="정보와 사용법" data-tooltip="정보, 사용법, 언어 및 화면 테마 설정">
+          <span id="iconToolInfo"></span>
+          <span class="tool-btn-label" data-i18n="nav.info">정보와 사용법</span>
         </button>
       </div>
-    </div>
-
-    <!-- 우측 정보 & 설정 버튼 -->
-    <div class="nav-actions">
-      <button class="tool-icon-btn" id="btnToolInfo" title="정보, 사용법, 제작자 안내" data-tooltip="정보, 사용법, 제작자 안내">
-        <span id="iconToolInfo"></span>
-      </button>
     </div>
   </header>
 
@@ -264,32 +262,49 @@
     </div>
   </div>
 
-  <!-- [모달 2: ISO 이미지 만들기] -->
-  <div class="layer-modal-backdrop" id="modalCreateIso">
-    <div class="compact-modal" style="width: 560px;">
+  <!-- [모달 2: ISO 이미지 읽기/만들기] -->
+  <div class="layer-modal-backdrop" id="modalIsoImage">
+    <div class="compact-modal iso-modal">
       <div class="modal-header">
-        <span class="modal-title">💿 ISO 이미지 만들기</span>
-        <button class="modal-close-btn" id="btnCloseCreateIso">&times;</button>
+        <span class="modal-title" data-i18n="iso.title">💿 ISO 이미지</span>
+        <button class="modal-close-btn" id="btnCloseIsoImage">&times;</button>
       </div>
       <div class="modal-body">
-        <p class="modal-help-text">일반 데이터 ISO를 만듭니다. Windows용 Joliet와 Linux용 Rock Ridge 파일명을 함께 기록합니다.</p>
-        <div class="drop-files-preview-box" id="isoFileListPreview">
-          <div class="empty-list-hint">ISO에 넣을 파일이나 폴더를 추가하세요.</div>
+        <div class="iso-tab-list" role="tablist" aria-label="ISO 작업 선택">
+          <button class="iso-tab active" id="btnIsoTabRead" role="tab" aria-selected="true" data-i18n="iso.readTab">ISO 읽기</button>
+          <button class="iso-tab" id="btnIsoTabCreate" role="tab" aria-selected="false" data-i18n="iso.createTab">ISO 만들기</button>
         </div>
-        <div style="display: flex; gap: 6px;">
-          <button class="btn" id="btnIsoAddFiles" style="flex: 1;">+ 파일 추가</button>
-          <button class="btn" id="btnIsoAddFolder" style="flex: 1;">+ 폴더 추가</button>
-          <button class="btn" id="btnIsoClear">비우기</button>
-        </div>
-        <div class="form-item">
-          <span class="form-label">디스크 이름</span>
-          <input type="text" id="txtIsoVolumeLabel" class="form-control" maxlength="32" value="CROW_PACK" placeholder="CROW_PACK">
-        </div>
-        <div class="preset-note">부팅 ISO와 4 GiB 이상 단일 파일은 지원하지 않습니다. 원본 파일은 변경되지 않습니다.</div>
+
+        <section class="iso-tab-panel active" id="isoReadPanel" role="tabpanel">
+          <p class="modal-help-text" data-i18n="iso.readHelp">ISO 안의 파일을 안전하게 탐색하고 원하는 항목을 폴더로 복사합니다.</p>
+          <div class="iso-open-drop-zone" id="isoOpenDropZone">
+            <span class="iso-drop-icon" id="iconIsoDrop"></span>
+            <strong data-i18n="iso.dropTitle">ISO 이미지를 이곳에 끌어다 놓으세요</strong>
+            <span data-i18n="iso.dropHint">또는 아래 버튼으로 ISO 파일을 선택하세요.</span>
+          </div>
+          <button class="btn primary iso-select-button" id="btnIsoSelectFile" data-i18n="iso.select">ISO 파일 선택</button>
+        </section>
+
+        <section class="iso-tab-panel" id="isoCreatePanel" role="tabpanel" hidden>
+          <p class="modal-help-text" data-i18n="iso.createHelp">일반 데이터 ISO를 만듭니다. Windows용 Joliet와 Linux용 Rock Ridge 파일명을 함께 기록합니다.</p>
+          <div class="drop-files-preview-box" id="isoFileListPreview">
+            <div class="empty-list-hint" data-i18n="iso.empty">ISO에 넣을 파일이나 폴더를 추가하세요.</div>
+          </div>
+          <div style="display: flex; gap: 6px;">
+            <button class="btn" id="btnIsoAddFiles" style="flex: 1;" data-i18n="iso.addFiles">+ 파일 추가</button>
+            <button class="btn" id="btnIsoAddFolder" style="flex: 1;" data-i18n="iso.addFolder">+ 폴더 추가</button>
+            <button class="btn" id="btnIsoClear" data-i18n="common.clear">비우기</button>
+          </div>
+          <div class="form-item">
+            <span class="form-label" data-i18n="iso.volume">디스크 이름</span>
+            <input type="text" id="txtIsoVolumeLabel" class="form-control" maxlength="32" value="CROW_PACK" placeholder="CROW_PACK">
+          </div>
+          <div class="preset-note" data-i18n="iso.limit">부팅 ISO와 4 GiB 이상 단일 파일은 지원하지 않습니다. 원본 파일은 변경되지 않습니다.</div>
+        </section>
       </div>
       <div class="modal-footer">
-        <button class="btn" id="btnCancelCreateIso">취소</button>
-        <button class="btn primary" id="btnCreateIso">💿 ISO 만들기</button>
+        <button class="btn" id="btnCancelIsoImage" data-i18n="common.close">닫기</button>
+        <button class="btn primary" id="btnCreateIso" hidden data-i18n="iso.create">💿 ISO 만들기</button>
       </div>
     </div>
   </div>
@@ -343,7 +358,7 @@
         <button class="modal-close-btn" id="btnCloseCodePage">&times;</button>
       </div>
       <div class="modal-body">
-        <p style="font-size: 11px; color: var(--text-muted); line-height: 1.4;">
+        <p class="modal-help-text" style="font-size: 11px; color: var(--text-muted); line-height: 1.4;">
           압축 파일 내 한글 파일명 깨짐을 방지하기 위한 코드페이지를 선택하세요.
         </p>
 
@@ -384,26 +399,51 @@
   <div class="layer-modal-backdrop" id="modalInfoApp">
     <div class="compact-modal" style="width: 480px;">
       <div class="modal-header">
-        <span class="modal-title">ℹ️ Crow Pack 정보 및 설정</span>
+        <span class="modal-title" data-i18n="info.title">ℹ️ 정보와 사용법</span>
         <button class="modal-close-btn" id="btnCloseInfoModal">&times;</button>
       </div>
       <div class="modal-body" style="gap: 14px;">
         <div style="background: var(--bg-main); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 12px; display: flex; gap: 12px; align-items: center;">
           <div style="width: 44px; height: 44px;" id="infoCrowLogo"></div>
           <div>
-            <h4 style="font-size: 13px; font-weight: 700; color: #fff;">Crow Pack v1.0K</h4>
-            <p style="font-size: 11px; color: #c7d2fe; font-weight: 600;">제작: Crow Science Lab</p>
-            <p style="font-size: 10px; color: var(--text-muted);">압축 파일과 ISO 이미지를 안전하게 탐색·복사</p>
+            <h4 class="theme-heading" style="font-size: 13px; font-weight: 700;">Crow Pack v1.0K</h4>
+            <p class="theme-accent-text" style="font-size: 11px; font-weight: 600;" data-i18n="info.author">제작: Crow Science Lab</p>
+            <p style="font-size: 10px; color: var(--text-muted);" data-i18n="info.summary">압축 파일과 ISO 이미지를 안전하게 탐색·복사</p>
           </div>
         </div>
 
-        <div style="font-size: 11px; color: var(--text-secondary); line-height: 1.5; background: var(--bg-card); padding: 10px; border-radius: 6px;">
-          <strong style="color: #fff;">💡 사용법 안내:</strong><br>
-          • <strong>압축 해제</strong>: 압축 파일을 열면 상단 툴바에 '이 폴더에 풀기' 또는 '폴더변경 풀기'가 활성화됩니다.<br>
-          • <strong>스마트 알아서 풀기</strong>: 낱개 파일들이 흩어져 바탕화면이 지저분해지는 것을 자동 방지합니다.<br>
-          • <strong>새로 압축</strong>: 파일/폴더를 드래그하여 프리셋/분할/암호를 설정하고 '이 폴더에 압축' 또는 '폴더변경 압축'을 실행합니다.<br>
-          • <strong>ISO 이미지</strong>: 상단 버튼으로 ISO를 열거나 일반 데이터 ISO를 새로 만들 수 있습니다.<br>
-          • <strong>PDF 용량 줄이기</strong>: 무손실·고화질·균형·최소 용량 중 하나만 선택하면 세부 설정은 자동 적용됩니다.
+        <div class="info-help-copy" data-i18n-html="info.help">
+          <strong>💡 사용법 안내:</strong><br>
+          • <strong>압축 해제</strong>: 압축 파일을 열면 상단 도구로 현재 폴더 또는 지정 폴더에 풀 수 있습니다.<br>
+          • <strong>새로 압축</strong>: 파일/폴더를 끌어다 놓고 압축 프리셋·분할·암호를 설정합니다.<br>
+          • <strong>ISO 이미지</strong>: 읽기 탭은 ISO를 탐색·복사하고, 만들기 탭은 일반 데이터 ISO를 생성합니다.<br>
+          • <strong>PDF 용량 조절</strong>: 네 가지 품질 단계 중 하나를 선택하면 세부 설정은 자동 적용됩니다.
+        </div>
+
+        <div class="settings-panel">
+          <strong class="settings-title" data-i18n="settings.title">⚙ 화면 설정</strong>
+          <label class="setting-row" for="selAppLanguage">
+            <span data-i18n="settings.language">언어</span>
+            <select id="selAppLanguage" class="form-control setting-control">
+              <option value="ko">한국어</option>
+              <option value="en">English</option>
+            </select>
+          </label>
+          <fieldset class="theme-choice-group">
+            <legend data-i18n="settings.theme">색 테마</legend>
+            <label class="theme-choice dark-choice">
+              <input type="radio" name="appTheme" value="dark" checked>
+              <span class="theme-swatch"></span><span data-i18n="theme.dark">Black (기본)</span>
+            </label>
+            <label class="theme-choice sky-choice">
+              <input type="radio" name="appTheme" value="bright-skyblue">
+              <span class="theme-swatch"></span><span>Bright Skyblue</span>
+            </label>
+            <label class="theme-choice pink-choice">
+              <input type="radio" name="appTheme" value="white-pink">
+              <span class="theme-swatch"></span><span>White Pink</span>
+            </label>
+          </fieldset>
         </div>
 
         <div style="font-size: 11px; color: var(--text-muted); padding: 0 4px;">
@@ -411,7 +451,7 @@
         </div>
       </div>
       <div class="modal-footer">
-        <button class="btn primary" id="btnConfirmInfo">확인</button>
+        <button class="btn primary" id="btnConfirmInfo" data-i18n="common.confirm">확인</button>
       </div>
     </div>
   </div>

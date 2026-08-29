@@ -8,12 +8,17 @@
 - Four PDF size-reduction presets: lossless, high quality, balanced, and compact.
 - Per-user Windows installer with Start Menu and optional desktop shortcuts.
 - Live GitHub release update checks.
+- One ISO Image window with Read (default) and Create tabs, including ISO drag-and-drop.
+- Korean/English UI selection and Black, Bright Skyblue, and White Pink themes.
+- A black-crow-on-disc Windows application and file-association icon.
 
 ### Fixed
 
 - Removed the delayed second browser tooltip while retaining accessible labels.
 - Connected every ISO/PDF modal control and expanded UI smoke coverage for all buttons.
 - Corrected photo classification so downsampled colour sampling does not skip photographic images.
+- Converted Windows launch/build scripts to CRLF so `cmd.exe` reads every command reliably.
+- Unified and visibly labelled the ISO, PDF, update, file-association, and help toolbar buttons.
 
 ### Security
 

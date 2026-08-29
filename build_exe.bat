@@ -26,6 +26,8 @@ echo.
 "%CROW_PYTHON%" -m pip install -e ".[build]" || exit /b 1
 "%CROW_PYTHON%" -m PyInstaller --noconfirm --clean --onedir --windowed ^
     --add-data "src/ui;src/ui" ^
+    --add-data "assets;assets" ^
+    --icon "assets/crow_pack.ico" ^
     --name "CrowPack" ^
     main.py || exit /b 1
 

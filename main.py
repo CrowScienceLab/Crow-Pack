@@ -8,13 +8,19 @@ import os
 import sys
 
 from PySide6.QtCore import Qt, QUrl, Signal
-from PySide6.QtGui import QColor, QPalette
+from PySide6.QtGui import QColor, QIcon, QPalette
 from PySide6.QtWebChannel import QWebChannel
 from PySide6.QtWebEngineCore import QWebEnginePage, QWebEngineProfile, QWebEngineSettings
 from PySide6.QtWebEngineWidgets import QWebEngineView
 from PySide6.QtWidgets import QApplication, QMainWindow
 
 from src.bridge.core_bridge import CoreBridge
+
+
+def bundled_path(*parts: str) -> str:
+    """Return a source-tree or PyInstaller-bundled resource path."""
+    base = getattr(sys, "_MEIPASS", os.path.dirname(os.path.abspath(__file__)))
+    return os.path.join(base, *parts)
 
 
 class LocalOnlyPage(QWebEnginePage):
@@ -75,6 +81,7 @@ class CrowPackWindow(QMainWindow):
         super().__init__()
         # 창 상단 타이틀
         self.setWindowTitle("Crow Pack v1.0K - 압축과 풀기 앱")
+        self.setWindowIcon(QIcon(bundled_path("assets", "crow_pack.ico")))
         
         # 쾌적하고 균형 잡힌 창 크기 (780 x 520)
         self.resize(780, 520)
@@ -107,7 +114,7 @@ class CrowPackWindow(QMainWindow):
         self.web_view.page().setWebChannel(self.channel)
 
         # UI 파일 로드
-        ui_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "src", "ui", "index.html"))
+        ui_path = bundled_path("src", "ui", "index.html")
         self.web_view.load(QUrl.fromLocalFile(ui_path))
 
         self.initial_files = initial_files or []
@@ -133,6 +140,7 @@ def main():
     app = QApplication(sys.argv)
     app.setApplicationName("Crow Pack")
     app.setOrganizationName("Crow Science Lab")
+    app.setWindowIcon(QIcon(bundled_path("assets", "crow_pack.ico")))
 
     initial_files = []
     if len(sys.argv) > 1:

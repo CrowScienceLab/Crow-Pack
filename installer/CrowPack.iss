@@ -21,6 +21,7 @@ OutputBaseFilename=CrowPack-v1.0K-Setup-x64
 Compression=lzma2/ultra64
 SolidCompression=yes
 WizardStyle=modern
+SetupIconFile=..\assets\crow_pack.ico
 CloseApplications=yes
 SetupLogging=yes
 UninstallDisplayIcon={app}\{#MyAppExeName}

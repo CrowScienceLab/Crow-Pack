@@ -527,11 +527,15 @@ class CoreBridge(QObject):
         try:
             if getattr(sys, "frozen", False):
                 open_command = f'"{sys.executable}" "%1"'
+                icon_path = sys.executable
             else:
                 pythonw = os.path.join(os.path.dirname(sys.executable), "pythonw.exe")
                 launcher = pythonw if os.path.exists(pythonw) else sys.executable
                 main_script = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "main.py"))
                 open_command = f'"{launcher}" "{main_script}" "%1"'
+                icon_path = os.path.abspath(
+                    os.path.join(os.path.dirname(__file__), "..", "..", "assets", "crow_pack.ico")
+                )
 
             prog_id = "CrowPack.Archive"
             classes_root = r"Software\Classes"
@@ -542,11 +546,14 @@ class CoreBridge(QObject):
             ]
             with winreg.CreateKey(winreg.HKEY_CURRENT_USER, f"{classes_root}\\{prog_id}") as key:
                 winreg.SetValueEx(key, None, 0, winreg.REG_SZ, "Crow Pack Archive")
+            with winreg.CreateKey(winreg.HKEY_CURRENT_USER, f"{classes_root}\\{prog_id}\\DefaultIcon") as key:
+                winreg.SetValueEx(key, None, 0, winreg.REG_SZ, f'"{icon_path}",0')
             with winreg.CreateKey(winreg.HKEY_CURRENT_USER, f"{classes_root}\\{prog_id}\\shell\\open\\command") as key:
                 winreg.SetValueEx(key, None, 0, winreg.REG_SZ, open_command)
             with winreg.CreateKey(winreg.HKEY_CURRENT_USER, capabilities) as key:
                 winreg.SetValueEx(key, "ApplicationName", 0, winreg.REG_SZ, "Crow Pack")
                 winreg.SetValueEx(key, "ApplicationDescription", 0, winreg.REG_SZ, "압축 파일과 ISO 이미지 탐색")
+                winreg.SetValueEx(key, "ApplicationIcon", 0, winreg.REG_SZ, f'"{icon_path}",0')
             with winreg.CreateKey(winreg.HKEY_CURRENT_USER, f"{capabilities}\\FileAssociations") as key:
                 for extension in extensions:
                     winreg.SetValueEx(key, extension, 0, winreg.REG_SZ, prog_id)
