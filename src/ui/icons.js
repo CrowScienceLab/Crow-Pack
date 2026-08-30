@@ -1,60 +1,26 @@
 /**
- * Crow Pack - Crow Signature Vector Iconography (v1.0K)
+ * Crow Pack - Crow Signature Vector Iconography (v1.1.0)
  * 정통 칠흑의 까마귀(Crow/Raven) 본연의 흑요석 블랙 부리와 깃털 실루엣
  */
 
 const CrowIcons = {
-  // 정통 칠흑의 까마귀(Crow / Raven) 브랜드 로고
+  // 땅에 앉아 오른쪽을 바라보는 현실적인 검은 까마귀 브랜드 로고
   logo: `
     <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" class="crow-svg-icon">
       <defs>
-        <linearGradient id="ravenBodyGrad" x1="15" y1="15" x2="85" y2="85" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stop-color="#3b4252" />
-          <stop offset="45%" stop-color="#1e232d" />
-          <stop offset="100%" stop-color="#0a0c10" />
-        </linearGradient>
-        <linearGradient id="ravenWingGrad" x1="10" y1="30" x2="70" y2="90" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stop-color="#4c566a" />
-          <stop offset="50%" stop-color="#282e3a" />
-          <stop offset="100%" stop-color="#10131a" />
-        </linearGradient>
-        <linearGradient id="ravenBeakDark" x1="60" y1="20" x2="96" y2="45" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stop-color="#475569" />
-          <stop offset="50%" stop-color="#1e293b" />
-          <stop offset="100%" stop-color="#020617" />
+        <linearGradient id="ravenBodyGrad" x1="34" y1="20" x2="69" y2="84" gradientUnits="userSpaceOnUse">
+          <stop stop-color="#354052"/><stop offset=".45" stop-color="#141a24"/><stop offset="1" stop-color="#030508"/>
         </linearGradient>
       </defs>
-
-      <!-- 까마귀 꼬리 깃털 -->
-      <path d="M12 75L22 62L28 72L16 86Z" fill="#10131a" stroke="#2e3440" stroke-width="1.2"/>
-      <path d="M16 86L26 70L34 78L22 94Z" fill="#0a0c10" stroke="#2e3440" stroke-width="1.2"/>
-
-      <!-- 까마귀 몸체 -->
-      <path d="M22 62C20 45 28 28 44 20C55 14 68 15 72 24C74 27 75 32 72 36C68 42 56 46 48 54C38 64 30 76 22 88C20 84 21 72 22 62Z" 
-            fill="url(#ravenBodyGrad)" stroke="#3b4252" stroke-width="1.5" stroke-linejoin="round"/>
-
-      <!-- 웅장한 날개 -->
-      <path d="M30 45C38 32 54 28 66 32C64 44 58 58 48 68C38 78 26 82 18 84C20 72 24 58 30 45Z" 
-            fill="url(#ravenWingGrad)" stroke="#434c5e" stroke-width="1.5"/>
-      <path d="M38 48C46 40 58 38 64 42" stroke="#4c566a" stroke-width="1.5" stroke-linecap="round"/>
-      <path d="M32 58C42 50 52 48 58 54" stroke="#3b4252" stroke-width="1.5" stroke-linecap="round"/>
-      <path d="M26 68C36 60 46 58 50 64" stroke="#2e3440" stroke-width="1.5" stroke-linecap="round"/>
-
-      <!-- 머리 & 목 -->
-      <path d="M52 18C62 14 74 16 78 26C80 32 78 38 74 42C68 46 58 44 52 38Z" 
-            fill="url(#ravenBodyGrad)"/>
-      <path d="M56 36C52 42 46 48 42 54" stroke="#4c566a" stroke-width="1.2" stroke-linecap="round"/>
-
-      <!-- 검은 부리 -->
-      <path d="M74 24L96 36C90 42 80 44 70 40L72 30Z" 
-            fill="url(#ravenBeakDark)" stroke="#090d16" stroke-width="1.5" stroke-linejoin="round"/>
-      <path d="M72 32Q85 35 96 36" stroke="#334155" stroke-width="1.2" stroke-linecap="round"/>
-      <ellipse cx="76" cy="28" rx="1.5" ry="0.8" fill="#1e293b"/>
-
-      <!-- 눈 -->
-      <circle cx="64" cy="25" r="4" fill="#020617" stroke="#475569" stroke-width="1.2"/>
-      <circle cx="64" cy="25" r="2" fill="#1e293b"/>
-      <circle cx="65.2" cy="23.8" r="0.9" fill="#ffffff"/>
+      <ellipse cx="49" cy="90" rx="39" ry="4" fill="#05070b" opacity=".45"/>
+      <path d="M18 77 8 87l24-6 9-10z" fill="#070a0f" stroke="#31394a" stroke-width="1"/>
+      <path d="M24 73c-2-19 5-38 20-47 9-6 20-7 29-3 6 3 10 8 11 15 1 10-6 16-14 22-4 3-6 8-6 13 0 8 4 12 10 16H34c-7-3-10-8-10-16z" fill="url(#ravenBodyGrad)" stroke="#05070b" stroke-width="1.6"/>
+      <path d="M31 52c8-15 25-22 39-16-1 16-8 32-20 42-8 7-18 10-28 9 8-9 7-23 9-35z" fill="#111722" stroke="#3b4659" stroke-width="1.2"/>
+      <path d="M38 48c9-7 19-10 28-7M33 59c10-7 20-9 29-5M29 70c10-5 19-6 27-2" stroke="#445064" stroke-width="1" stroke-linecap="round" opacity=".75"/>
+      <path d="M79 30 98 38c-6 5-13 7-21 5l-4-7z" fill="#05070a" stroke="#364155" stroke-width="1"/>
+      <circle cx="76" cy="31" r="2.4" fill="#080b10" stroke="#59677b" stroke-width="1"/>
+      <circle cx="76.7" cy="30.3" r=".7" fill="#dbeafe"/>
+      <path d="M40 86v6m-4 0h10m15-6v6m-4 0h10" stroke="#080b10" stroke-width="2.4" stroke-linecap="round"/>
     </svg>
   `,
 

@@ -43,13 +43,13 @@ class TestBridgeFeatures(unittest.TestCase):
         response.__enter__.return_value = response
         response.__exit__.return_value = False
         response.read.return_value = json.dumps({
-            "tag_name": "v1.0K",
-            "html_url": "https://github.com/CrowScienceLab/Crow-Pack/releases/tag/v1.0K",
+            "tag_name": "v1.1.0",
+            "html_url": "https://github.com/CrowScienceLab/Crow-Pack/releases/tag/v1.1.0",
         }).encode("utf-8")
         with patch("src.bridge.core_bridge.urllib.request.urlopen", return_value=response):
             result = json.loads(CoreBridge().checkForUpdates())
         self.assertTrue(result["success"])
-        self.assertEqual(result["version"], "1.0K")
+        self.assertEqual(result["version"], "1.1.0")
         self.assertFalse(result["update_available"])
 
     def test_update_status_reports_network_error(self):
@@ -97,7 +97,7 @@ class TestBridgeFeatures(unittest.TestCase):
             "success": True,
             "output_path": output_path,
             "saved_bytes": 123,
-            "message": "PDF 무손실 최적화가 완료되었습니다.",
+            "message": "PDF 무손실 정리가 완료되었습니다.",
         }
         with (
             patch("src.bridge.core_bridge.QFileDialog.getOpenFileName", return_value=(input_path, "PDF")),
@@ -125,12 +125,15 @@ class TestBridgeFeatures(unittest.TestCase):
         with (
             patch("src.bridge.core_bridge.winreg.CreateKey", return_value=fake_key) as create_key,
             patch("src.bridge.core_bridge.winreg.SetValueEx") as set_value,
+            patch("src.bridge.core_bridge.winreg.OpenKey", side_effect=FileNotFoundError),
+            patch("src.bridge.core_bridge.winreg.QueryValueEx", side_effect=FileNotFoundError),
             patch("src.bridge.core_bridge.os.startfile") as start_file,
         ):
             result = json.loads(CoreBridge().registerFileAssociations())
         self.assertTrue(result["success"])
         self.assertGreater(create_key.call_count, 4)
         self.assertGreater(set_value.call_count, 10)
+        self.assertEqual(len(result["claimed_extensions"]), len(result["registered_extensions"]))
         start_file.assert_called_once_with("ms-settings:defaultapps")
 
 

@@ -1,6 +1,6 @@
 """
 Crow Pack - PySide6 WebChannel Core Bridge
-UI와 파이썬 아카이브 엔진 간의 네이티브 양방향 브릿지 (Crow Pack v1.0K)
+UI와 파이썬 아카이브 엔진 간의 네이티브 양방향 브릿지 (Crow Pack v1.1.0)
 """
 
 import json
@@ -30,8 +30,8 @@ class CoreBridge(QObject):
     _IMAGE_PREVIEW_EXTENSIONS = {".bmp", ".gif", ".jpeg", ".jpg", ".png", ".webp"}
     _MAX_IMAGE_PREVIEW_BYTES = 20 * 1024**2
     _MAX_IMAGE_PREVIEW_PIXELS = 40_000_000
-    APP_VERSION = "1.0K"
-    RELEASE_TAG = "v1.0K"
+    APP_VERSION = "1.1.0"
+    RELEASE_TAG = "v1.1.0"
     LATEST_RELEASE_API = "https://api.github.com/repos/CrowScienceLab/Crow-Pack/releases/latest"
     
     progressEvent = Signal(int, int, str)
@@ -447,17 +447,41 @@ class CoreBridge(QObject):
         """선택한 품질 프리셋으로 PDF 최적화"""
         return self._optimize_pdf(preset)
 
-    def _optimize_pdf(self, preset: str) -> str:
+    @Slot(result=str)
+    def analyzePdf(self) -> str:
+        """사용자가 선택한 PDF의 로컬 용량 구성을 분석"""
+        try:
+            input_path, _ = QFileDialog.getOpenFileName(
+                self.parent_widget,
+                "분석할 PDF 선택 - Crow Pack",
+                "",
+                "PDF 문서 (*.pdf)",
+            )
+            if not input_path:
+                return json.dumps({"success": False, "cancelled": True}, ensure_ascii=False)
+            result = PdfOptimizer.analyze(input_path)
+            result["success"] = True
+            return json.dumps(result, ensure_ascii=False)
+        except Exception as e:
+            return json.dumps({"success": False, "error": str(e)}, ensure_ascii=False)
+
+    @Slot(str, str, result=str)
+    def optimizePdfFile(self, preset: str, input_path: str) -> str:
+        """이미 분석한 PDF 경로에 선택 프리셋 적용"""
+        return self._optimize_pdf(preset, input_path)
+
+    def _optimize_pdf(self, preset: str, input_path: str = "") -> str:
         try:
             profile = PdfOptimizer.PRESETS.get(preset)
             if profile is None:
                 raise ValueError("지원하지 않는 PDF 압축 프리셋입니다.")
-            input_path, _ = QFileDialog.getOpenFileName(
-                self.parent_widget,
-                f"{profile['label']} 처리할 PDF 선택 - Crow Pack",
-                "",
-                "PDF 문서 (*.pdf)",
-            )
+            if not input_path:
+                input_path, _ = QFileDialog.getOpenFileName(
+                    self.parent_widget,
+                    f"{profile['label']} 처리할 PDF 선택 - Crow Pack",
+                    "",
+                    "PDF 문서 (*.pdf)",
+                )
             if not input_path:
                 return json.dumps({"success": False, "cancelled": True}, ensure_ascii=False)
             stem, _ = os.path.splitext(input_path)
@@ -466,6 +490,7 @@ class CoreBridge(QObject):
                 "high": "high",
                 "balanced": "balanced",
                 "compact": "compact",
+                "extreme": "extreme",
             }[preset]
             output_path, _ = QFileDialog.getSaveFileName(
                 self.parent_widget,
@@ -541,15 +566,28 @@ class CoreBridge(QObject):
             classes_root = r"Software\Classes"
             capabilities = r"Software\Crow Science Lab\Crow Pack\Capabilities"
             extensions = [
-                ".7z", ".alz", ".cab", ".egg", ".gz", ".iso", ".rar",
-                ".tar", ".tbz2", ".tgz", ".txz", ".xz", ".zip",
+                ".7z", ".alz", ".bz2", ".cab", ".egg", ".gz", ".iso",
+                ".rar", ".tar", ".tbz2", ".tgz", ".txz", ".xz", ".zip",
             ]
+            application_key = rf"{classes_root}\Applications\CrowPack.exe"
             with winreg.CreateKey(winreg.HKEY_CURRENT_USER, f"{classes_root}\\{prog_id}") as key:
                 winreg.SetValueEx(key, None, 0, winreg.REG_SZ, "Crow Pack Archive")
             with winreg.CreateKey(winreg.HKEY_CURRENT_USER, f"{classes_root}\\{prog_id}\\DefaultIcon") as key:
                 winreg.SetValueEx(key, None, 0, winreg.REG_SZ, f'"{icon_path}",0')
             with winreg.CreateKey(winreg.HKEY_CURRENT_USER, f"{classes_root}\\{prog_id}\\shell\\open\\command") as key:
                 winreg.SetValueEx(key, None, 0, winreg.REG_SZ, open_command)
+            with winreg.CreateKey(winreg.HKEY_CURRENT_USER, application_key) as key:
+                winreg.SetValueEx(key, "FriendlyAppName", 0, winreg.REG_SZ, "Crow Pack")
+                winreg.SetValueEx(key, "ApplicationCompany", 0, winreg.REG_SZ, "Crow Science Lab")
+                winreg.SetValueEx(key, "ApplicationDescription", 0, winreg.REG_SZ, "압축 파일과 ISO 이미지 탐색")
+            with winreg.CreateKey(
+                winreg.HKEY_CURRENT_USER,
+                f"{application_key}\\shell\\open\\command",
+            ) as key:
+                winreg.SetValueEx(key, None, 0, winreg.REG_SZ, open_command)
+            with winreg.CreateKey(winreg.HKEY_CURRENT_USER, f"{application_key}\\SupportedTypes") as key:
+                for extension in extensions:
+                    winreg.SetValueEx(key, extension, 0, winreg.REG_SZ, "")
             with winreg.CreateKey(winreg.HKEY_CURRENT_USER, capabilities) as key:
                 winreg.SetValueEx(key, "ApplicationName", 0, winreg.REG_SZ, "Crow Pack")
                 winreg.SetValueEx(key, "ApplicationDescription", 0, winreg.REG_SZ, "압축 파일과 ISO 이미지 탐색")
@@ -559,7 +597,18 @@ class CoreBridge(QObject):
                     winreg.SetValueEx(key, extension, 0, winreg.REG_SZ, prog_id)
             with winreg.CreateKey(winreg.HKEY_CURRENT_USER, r"Software\RegisteredApplications") as key:
                 winreg.SetValueEx(key, "Crow Pack", 0, winreg.REG_SZ, capabilities)
+            claimed_extensions = []
             for extension in extensions:
+                extension_key = f"{classes_root}\\{extension}"
+                try:
+                    with winreg.OpenKey(winreg.HKEY_CLASSES_ROOT, extension) as existing_key:
+                        existing_prog_id, _ = winreg.QueryValueEx(existing_key, None)
+                except OSError:
+                    existing_prog_id = ""
+                with winreg.CreateKey(winreg.HKEY_CURRENT_USER, extension_key) as key:
+                    if not existing_prog_id:
+                        winreg.SetValueEx(key, None, 0, winreg.REG_SZ, prog_id)
+                        claimed_extensions.append(extension)
                 with winreg.CreateKey(
                     winreg.HKEY_CURRENT_USER,
                     f"{classes_root}\\{extension}\\OpenWithProgids",
@@ -575,7 +624,13 @@ class CoreBridge(QObject):
             os.startfile("ms-settings:defaultapps")
             return json.dumps({
                 "success": True,
-                "message": "Crow Pack을 연결 후보로 등록했습니다. Windows 기본 앱 화면에서 확장자를 선택하세요.",
+                "registered_extensions": extensions,
+                "claimed_extensions": claimed_extensions,
+                "message": (
+                    f"Crow Pack을 {len(extensions)}개 확장자의 연결 후보로 등록했습니다. "
+                    f"기존 기본 앱이 없던 {len(claimed_extensions)}개 확장자는 Crow Pack에 연결했습니다. "
+                    "Windows 기본 앱 화면에서 나머지 확장자를 선택하세요."
+                ),
             }, ensure_ascii=False)
         except Exception as e:
             return json.dumps({"success": False, "error": str(e)}, ensure_ascii=False)

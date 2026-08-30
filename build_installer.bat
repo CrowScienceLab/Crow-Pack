@@ -4,7 +4,7 @@ chcp 65001 > nul
 cd /d "%~dp0"
 
 echo ===================================================
-echo   Crow Pack v1.0K - Windows 설치본 빌드
+echo   Crow Pack v1.1.0 - Windows 설치본 빌드
 echo ===================================================
 
 call build_exe.bat < nul
@@ -22,5 +22,5 @@ if not exist "%CROW_ISCC%" (
 "%CROW_ISCC%" "installer\CrowPack.iss"
 if errorlevel 1 exit /b 1
 
-echo 설치본: release\CrowPack-v1.0K-Setup-x64.exe
+echo 설치본: release\CrowPack-v1.1.0-Setup-x64.exe
 exit /b 0

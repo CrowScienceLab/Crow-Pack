@@ -1,5 +1,25 @@
 # Changelog
 
+## [1.1.0] - 2026-08-31
+
+### Added
+
+- All archive entries are selected by default, with Shift-range, Ctrl-toggle, and right-button drag selection.
+- PDF size analysis with image, font, attachment, document-type, and recommended-preset reporting.
+- Extreme local PDF compression that rebuilds visible pages as adaptive 120 DPI images after a loss warning.
+- Windows `Applications\\CrowPack.exe` supported-type registration and automatic association for unclaimed formats.
+
+### Changed
+
+- Replaced the Windows and in-app brand art with a grounded side-profile black crow.
+- Expanded lossy PDF optimization to low-colour, monochrome, palette, and transparent images.
+- PDF results now report actual reduction percentage, processed images, skipped images, and rasterized pages.
+
+### Security
+
+- PDF analysis and all five compression presets remain local-only and never upload document contents.
+- Encrypted and digitally signed PDFs remain protected; extreme mode explicitly warns about removed document features.
+
 ## [1.0K] - 2026-08-29
 
 ### Added

@@ -2,7 +2,7 @@
 
 ## Supported version
 
-Security fixes are prepared for the latest `1.0K` release line.
+Security fixes are prepared for the latest `1.1.x` release line.
 
 ## Reporting a vulnerability
 
@@ -24,3 +24,6 @@ directly from the archive preview.
 
 Image previews are limited to 20 MiB and 40 million pixels. PDF optimization
 refuses encrypted or digitally signed documents and never overwrites the source.
+PDF analysis, image optimization, and extreme page rasterization run locally and
+never upload document contents. Extreme mode intentionally removes interactive
+structures such as links, forms, annotations, layers, and original selectable text.

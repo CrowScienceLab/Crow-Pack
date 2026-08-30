@@ -1,5 +1,5 @@
 /**
- * Crow Pack v1.0K - Frontend Interaction Logic
+ * Crow Pack v1.1.0 - Frontend Interaction Logic
  * 칠흑 까마귀 테마, 툴바 컨텍스트 전환, 플로팅 툴팁 엔진 및 드래그앤드롭
  */
 
@@ -19,9 +19,15 @@ const AppState = {
   currentArchiveInfo: null,
   currentDirectory: '', // 탐색기 내부 가상 디렉터리
   selectedItems: new Set(),
+  selectionAnchorIndex: null,
+  rightDragSelecting: false,
+  rightDragMoved: false,
+  rightDragStartName: '',
   compressSourcePaths: [],
   isoSourcePaths: [],
   isoTab: 'read',
+  pdfInputPath: '',
+  pdfAnalysis: null,
   selectedEncoding: 'auto',
   language: 'ko',
   theme: 'dark',
@@ -60,7 +66,7 @@ const TRANSLATIONS = {
     'info.title': 'ℹ️ 정보와 사용법',
     'info.author': '제작: Crow Science Lab',
     'info.summary': '압축 파일과 ISO 이미지를 안전하게 탐색·복사',
-    'info.help': '<strong>💡 사용법 안내:</strong><br>• <strong>압축 해제</strong>: 압축 파일을 열면 상단 도구로 현재 폴더 또는 지정 폴더에 풀 수 있습니다.<br>• <strong>새로 압축</strong>: 파일/폴더를 끌어다 놓고 압축 프리셋·분할·암호를 설정합니다.<br>• <strong>ISO 이미지</strong>: 읽기 탭은 ISO를 탐색·복사하고, 만들기 탭은 일반 데이터 ISO를 생성합니다.<br>• <strong>PDF 용량 조절</strong>: 네 가지 품질 단계 중 하나를 선택하면 세부 설정은 자동 적용됩니다.',
+    'info.help': '<strong>💡 사용법 안내:</strong><br>• <strong>압축 해제</strong>: 압축 파일을 열면 상단 도구로 현재 폴더 또는 지정 폴더에 풀 수 있습니다.<br>• <strong>새로 압축</strong>: 파일/폴더를 끌어다 놓고 압축 프리셋·분할·암호를 설정합니다.<br>• <strong>ISO 이미지</strong>: 읽기 탭은 ISO를 탐색·복사하고, 만들기 탭은 일반 데이터 ISO를 생성합니다.<br>• <strong>PDF 용량 조절</strong>: 문서 구성을 분석한 뒤 다섯 가지 단계 중 하나를 선택하면 세부 설정은 자동 적용됩니다.',
     'settings.title': '⚙ 화면 설정',
     'settings.language': '언어',
     'settings.theme': '색 테마',
@@ -92,7 +98,7 @@ const TRANSLATIONS = {
     'info.title': 'ℹ️ Help & Info',
     'info.author': 'By Crow Science Lab',
     'info.summary': 'Safely browse, extract, and copy archives and ISO images',
-    'info.help': '<strong>💡 Quick guide:</strong><br>• <strong>Extract</strong>: Open an archive, then extract to the current folder or a chosen folder.<br>• <strong>Create archive</strong>: Drop files or folders, then choose a preset, splitting, and password.<br>• <strong>ISO Image</strong>: Read and copy from an ISO, or create a standard data ISO in the second tab.<br>• <strong>PDF Size</strong>: Choose one of four quality levels and Crow Pack applies the detailed settings.',
+    'info.help': '<strong>💡 Quick guide:</strong><br>• <strong>Extract</strong>: Open an archive, then extract to the current folder or a chosen folder.<br>• <strong>Create archive</strong>: Drop files or folders, then choose a preset, splitting, and password.<br>• <strong>ISO Image</strong>: Read and copy from an ISO, or create a standard data ISO in the second tab.<br>• <strong>PDF Size</strong>: Analyze the document, then choose one of five presets and Crow Pack applies the detailed settings.',
     'settings.title': '⚙ Display settings',
     'settings.language': 'Language',
     'settings.theme': 'Color theme',
@@ -129,17 +135,20 @@ const STATIC_UI_TRANSLATIONS = {
       '#selCompressLevel option[value="9"]': '최대 압축',
       '#selCompressLevel option[value="0"]': '압축 안 함',
       '#modalPdfOptimize .modal-title': '📄 PDF 용량 조절',
-      '#modalPdfOptimize .modal-help-text': '세부 수치는 Crow Pack이 자동으로 적용합니다. 텍스트와 벡터는 유지하고, 선택한 단계에 따라 큰 그림을 조정합니다.',
-      '.pdf-preset-card:nth-child(1) .pdf-preset-title': '무손실 최적화',
+      '#modalPdfOptimize .modal-help-text': '먼저 문서를 분석하면 용량 구성과 권장 단계를 확인할 수 있습니다. 모든 처리는 이 컴퓨터 안에서만 진행됩니다.',
+      '#btnAnalyzePdf': '🔎 PDF 선택·분석',
+      '.pdf-preset-card:nth-child(1) .pdf-preset-title': '무손실 정리',
       '.pdf-preset-card:nth-child(1) .pdf-preset-desc': '그림 변경 없이 내부 구조만 정리',
-      '.pdf-preset-card:nth-child(2) .pdf-preset-title': '고화질',
+      '.pdf-preset-card:nth-child(2) .pdf-preset-title': '문서 최적화',
       '.pdf-preset-card:nth-child(2) .pdf-preset-desc': '인쇄용, 큰 그림 최대 약 2,480px',
       '.pdf-preset-card:nth-child(3) .pdf-preset-title': '균형',
       '.pdf-preset-card:nth-child(3) .pdf-preset-desc': '일반 공유용, 품질과 크기의 균형',
       '.pdf-preset-card:nth-child(3) .preset-badge': '권장',
       '.pdf-preset-card:nth-child(4) .pdf-preset-title': '최소 용량',
       '.pdf-preset-card:nth-child(4) .pdf-preset-desc': '화면 열람용, 가장 강한 그림 최적화',
-      '#modalPdfOptimize .preset-note': '전자서명·암호화 PDF는 보호를 위해 처리하지 않으며, 원본을 덮어쓰지 않습니다.',
+      '.pdf-preset-card:nth-child(5) .pdf-preset-title': '극한 압축',
+      '.pdf-preset-card:nth-child(5) .pdf-preset-desc': '페이지를 120 DPI 이미지로 재구성·문서 기능 손실 가능',
+      '#modalPdfOptimize .preset-note': '🔒 외부 서버 전송 없음 · 원본 덮어쓰기 없음 · 전자서명·암호화 PDF 처리 안 함',
       '#btnCancelPdfOptimize': '취소', '#btnRunPdfOptimize': '선택한 품질로 저장',
       '#modalCodePage .modal-title': '🌐 코드페이지 / 한글 인코딩 설정',
       '#modalCodePage .modal-help-text': '압축 파일 내 한글 파일명 깨짐을 방지하기 위한 코드페이지를 선택하세요.',
@@ -188,17 +197,20 @@ const STATIC_UI_TRANSLATIONS = {
       '#selCompressLevel option[value="9"]': 'Maximum',
       '#selCompressLevel option[value="0"]': 'Store only',
       '#modalPdfOptimize .modal-title': '📄 Adjust PDF Size',
-      '#modalPdfOptimize .modal-help-text': 'Crow Pack applies the detailed settings automatically. Text and vectors stay intact while large images are adjusted for the selected level.',
-      '.pdf-preset-card:nth-child(1) .pdf-preset-title': 'Lossless',
+      '#modalPdfOptimize .modal-help-text': 'Analyze the document first to see its size profile and recommended preset. Processing stays on this PC.',
+      '#btnAnalyzePdf': '🔎 Select & Analyze PDF',
+      '.pdf-preset-card:nth-child(1) .pdf-preset-title': 'Lossless Cleanup',
       '.pdf-preset-card:nth-child(1) .pdf-preset-desc': 'Clean internal structure without changing images',
-      '.pdf-preset-card:nth-child(2) .pdf-preset-title': 'High Quality',
+      '.pdf-preset-card:nth-child(2) .pdf-preset-title': 'Document Optimized',
       '.pdf-preset-card:nth-child(2) .pdf-preset-desc': 'For print, large images up to about 2,480 px',
       '.pdf-preset-card:nth-child(3) .pdf-preset-title': 'Balanced',
       '.pdf-preset-card:nth-child(3) .pdf-preset-desc': 'Recommended balance for everyday sharing',
       '.pdf-preset-card:nth-child(3) .preset-badge': 'Recommended',
       '.pdf-preset-card:nth-child(4) .pdf-preset-title': 'Smallest',
       '.pdf-preset-card:nth-child(4) .pdf-preset-desc': 'Strongest image optimization for screen viewing',
-      '#modalPdfOptimize .preset-note': 'Signed or encrypted PDFs are left unchanged, and the source file is never overwritten.',
+      '.pdf-preset-card:nth-child(5) .pdf-preset-title': 'Extreme',
+      '.pdf-preset-card:nth-child(5) .pdf-preset-desc': 'Rebuild pages as 120 DPI images; document features may be lost',
+      '#modalPdfOptimize .preset-note': '🔒 No upload · No source overwrite · Signed/encrypted PDFs are not processed',
       '#btnCancelPdfOptimize': 'Cancel', '#btnRunPdfOptimize': 'Save with Selected Quality',
       '#modalCodePage .modal-title': '🌐 Filename Encoding',
       '#modalCodePage .modal-help-text': 'Choose how Crow Pack should recover legacy archive filenames.',
@@ -520,7 +532,12 @@ function showExplorerView(archiveInfo) {
   AppState.currentView = 'explorer';
   AppState.currentArchiveInfo = archiveInfo;
   AppState.currentDirectory = '';
-  AppState.selectedItems.clear();
+  AppState.selectedItems = new Set(
+    archiveInfo.items
+      .map(item => item.name.replace(/\\/g, '/'))
+      .filter(name => name && !name.endsWith('/'))
+  );
+  AppState.selectionAnchorIndex = null;
 
   document.getElementById('viewHome').classList.remove('active');
   document.getElementById('viewExplorer').classList.add('active');
@@ -642,11 +659,45 @@ function renderExplorer() {
     return a.name.localeCompare(b.name);
   });
 
-  sortedItems.forEach(entry => {
+  const selectionNamesForEntry = (entry) => {
+    if (!entry.isDir) return [entry.fullName];
+    return info.items
+      .map(item => item.name.replace(/\\/g, '/'))
+      .filter(name => name && !name.endsWith('/') && name.startsWith(entry.fullName));
+  };
+
+  const isEntrySelected = (entry) => {
+    const names = selectionNamesForEntry(entry);
+    return names.length > 0 && names.every(name => AppState.selectedItems.has(name));
+  };
+
+  const setEntrySelected = (entry, checked) => {
+    selectionNamesForEntry(entry).forEach((name) => {
+      if (checked) AppState.selectedItems.add(name);
+      else AppState.selectedItems.delete(name);
+    });
+  };
+
+  const applyVisibleSelection = (index, event, forcedState = null) => {
+    const entry = sortedItems[index];
+    const desired = forcedState === null ? !isEntrySelected(entry) : Boolean(forcedState);
+    if (event && event.shiftKey && AppState.selectionAnchorIndex !== null) {
+      const start = Math.min(AppState.selectionAnchorIndex, index);
+      const end = Math.max(AppState.selectionAnchorIndex, index);
+      for (let cursor = start; cursor <= end; cursor += 1) {
+        setEntrySelected(sortedItems[cursor], desired);
+      }
+    } else {
+      setEntrySelected(entry, desired);
+    }
+    AppState.selectionAnchorIndex = index;
+  };
+
+  sortedItems.forEach((entry, index) => {
     const tr = document.createElement('tr');
     tr.dataset.fullName = entry.fullName;
 
-    const isChecked = AppState.selectedItems.has(entry.fullName);
+    const isChecked = isEntrySelected(entry);
     const iconSvg = entry.isDir ? window.CrowIcons.folder : window.CrowIcons.file;
     const iconClass = entry.isDir ? 'folder' : '';
 
@@ -680,28 +731,45 @@ function renderExplorer() {
     dateCell.style.color = 'var(--text-muted)';
     dateCell.textContent = String(entry.dateTime);
     tr.append(checkboxCell, nameCell, originalSizeCell, compressedSizeCell, dateCell);
-    chk.addEventListener('change', (e) => {
-      e.stopPropagation();
-      if (chk.checked) AppState.selectedItems.add(entry.fullName);
-      else AppState.selectedItems.delete(entry.fullName);
-      updateExplorerStatusBar();
-    });
-
     chk.addEventListener('click', (e) => {
       e.stopPropagation();
+      applyVisibleSelection(index, e, chk.checked);
+      renderExplorer();
     });
 
     checkboxCell.addEventListener('click', (e) => {
       e.stopPropagation();
       if (e.target !== chk) {
-        chk.checked = !chk.checked;
-        chk.dispatchEvent(new Event('change'));
+        applyVisibleSelection(index, e);
+        renderExplorer();
       }
     });
 
-    tr.addEventListener('click', () => {
-      chk.checked = !chk.checked;
-      chk.dispatchEvent(new Event('change'));
+    tr.addEventListener('click', (e) => {
+      applyVisibleSelection(index, e);
+      renderExplorer();
+    });
+
+    tr.addEventListener('mousedown', (e) => {
+      if (e.button !== 2) return;
+      AppState.rightDragSelecting = true;
+      AppState.rightDragMoved = false;
+      AppState.rightDragStartName = entry.fullName;
+      setEntrySelected(entry, true);
+      chk.checked = true;
+      AppState.selectionAnchorIndex = index;
+      updateExplorerStatusBar();
+      tr.classList.add('selected');
+    });
+
+    tr.addEventListener('mouseenter', (e) => {
+      if (!AppState.rightDragSelecting || !(e.buttons & 2)) return;
+      if (entry.fullName !== AppState.rightDragStartName) AppState.rightDragMoved = true;
+      setEntrySelected(entry, true);
+      tr.classList.add('selected');
+      const rowCheckbox = tr.querySelector('.item-chk');
+      if (rowCheckbox) rowCheckbox.checked = true;
+      updateExplorerStatusBar();
     });
 
     tr.addEventListener('dblclick', (e) => {
@@ -715,13 +783,27 @@ function renderExplorer() {
     });
 
     tr.addEventListener('contextmenu', (e) => {
+      if (AppState.rightDragMoved) {
+        e.preventDefault();
+        e.stopPropagation();
+        AppState.rightDragMoved = false;
+        return;
+      }
       showArchiveContextMenu(e, entry);
     });
+
+    if (isChecked) tr.classList.add('selected');
 
     tbody.appendChild(tr);
   });
 
   updateExplorerStatusBar();
+  const selectAll = document.getElementById('chkSelectAll');
+  if (selectAll) {
+    const visibleSelections = sortedItems.map(isEntrySelected);
+    selectAll.checked = visibleSelections.length > 0 && visibleSelections.every(Boolean);
+    selectAll.indeterminate = visibleSelections.some(Boolean) && !selectAll.checked;
+  }
 }
 
 function updateExplorerStatusBar() {
@@ -729,7 +811,7 @@ function updateExplorerStatusBar() {
   if (!info) return;
 
   const totalFiles = info.file_count;
-  const selCount = AppState.selectedItems.size;
+  const selCount = Array.from(AppState.selectedItems).filter(name => !name.endsWith('/')).length;
   const summaryEl = document.getElementById('statExplorerSummary');
   const sizesEl = document.getElementById('statExplorerSizes');
 
@@ -960,6 +1042,25 @@ function closePdfOptimizeModal() {
   document.getElementById('modalPdfOptimize').classList.remove('active');
 }
 
+function renderPdfAnalysis(analysis) {
+  AppState.pdfAnalysis = analysis;
+  AppState.pdfInputPath = analysis.input_path || '';
+  const composition = analysis.composition || {};
+  const typeLabels = {
+    scan_or_photo: '스캔·사진 중심',
+    office_document: 'Office·폰트 중심',
+    text_or_vector: '텍스트·벡터 중심',
+    encrypted: '암호화 문서'
+  };
+  document.getElementById('pdfAnalysisSummary').textContent =
+    `${analysis.filename} · ${analysis.page_count}쪽 · ${formatBytes(analysis.original_size)} · ` +
+    `${typeLabels[analysis.document_type] || analysis.document_type} · ` +
+    `이미지 ${composition.images || 0}% / 폰트 ${composition.fonts || 0}% / 첨부 ${composition.attachments || 0}% · ` +
+    `권장: ${analysis.recommendation_label}`;
+  const recommended = document.querySelector(`input[name="pdfPreset"][value="${analysis.recommendation}"]`);
+  if (recommended) recommended.checked = true;
+}
+
 function openCodePageModal() {
   document.getElementById('modalCodePage').classList.add('active');
 }
@@ -1011,7 +1112,7 @@ function initNativeBridge() {
   if (typeof QWebChannel !== 'undefined') {
     new QWebChannel(qt.webChannelTransport, (channel) => {
       AppState.pyBridge = channel.objects.coreBridge;
-      console.log('PySide6 Native Bridge Connected (Crow Pack v1.0K)!');
+      console.log('PySide6 Native Bridge Connected (Crow Pack v1.1.0)!');
 
       AppState.pyBridge.progressEvent.connect((current, total, file) => {
         updateProgress(current, total, file);
@@ -1064,13 +1165,24 @@ function initEvents() {
   document.getElementById('btnToolPdfOptimize').onclick = openPdfOptimizeModal;
   document.getElementById('btnClosePdfOptimize').onclick = closePdfOptimizeModal;
   document.getElementById('btnCancelPdfOptimize').onclick = closePdfOptimizeModal;
+  document.getElementById('btnAnalyzePdf').onclick = () => {
+    if (!AppState.pyBridge) return;
+    AppState.pyBridge.analyzePdf((resJson) => {
+      const result = JSON.parse(resJson);
+      if (result.success) renderPdfAnalysis(result);
+      else if (!result.cancelled) alert('PDF 분석 실패: ' + result.error);
+    });
+  };
   document.getElementById('btnRunPdfOptimize').onclick = () => {
     const selected = document.querySelector('input[name="pdfPreset"]:checked');
     const preset = selected ? selected.value : 'balanced';
     if (!AppState.pyBridge) return;
+    if (preset === 'extreme' && !confirm(
+      '극한 압축은 페이지를 이미지로 다시 만들어 텍스트 선택, 링크, 양식, 주석과 벡터 구조가 사라질 수 있습니다. 계속하시겠습니까?'
+    )) return;
     closePdfOptimizeModal();
     showProgress('PDF 용량 줄이는 중...', '원본을 보호하며 새 PDF로 저장합니다.');
-    AppState.pyBridge.optimizePdfPreset(preset, (resJson) => {
+    const callback = (resJson) => {
       const result = JSON.parse(resJson);
       if (!result.success) {
         hideProgress();
@@ -1079,14 +1191,18 @@ function initEvents() {
       }
       if (!result.output_path) {
         hideProgress();
-        alert(result.message);
+        alert(`${result.message}\n처리 이미지 ${result.images_processed || 0}개 / 제외 ${result.images_skipped || 0}개`);
         return;
       }
       finishProgress(
-        `${result.message}${result.saved_bytes ? ` (${formatBytes(result.saved_bytes)} 절감)` : ''}`,
+        `${result.message} · ${result.compression_ratio}% 감소 · ${formatBytes(result.saved_bytes)} 절감` +
+        `${result.images_processed ? ` · 이미지 ${result.images_processed}개 처리` : ''}` +
+        `${result.pages_rasterized ? ` · ${result.pages_rasterized}쪽 재구성` : ''}`,
         result.output_dir
       );
-    });
+    };
+    if (AppState.pdfInputPath) AppState.pyBridge.optimizePdfFile(preset, AppState.pdfInputPath, callback);
+    else AppState.pyBridge.optimizePdfPreset(preset, callback);
   };
 
   document.getElementById('btnToolUpdate').onclick = () => {
@@ -1391,11 +1507,23 @@ function initEvents() {
 
   document.getElementById('chkSelectAll').onchange = (e) => {
     const isChecked = e.target.checked;
-    document.querySelectorAll('.item-chk').forEach(chk => {
-      chk.checked = isChecked;
-      chk.dispatchEvent(new Event('change'));
+    const info = AppState.currentArchiveInfo;
+    if (!info) return;
+    info.items.forEach((item) => {
+      const name = item.name.replace(/\\/g, '/');
+      if (!name || name.endsWith('/')) return;
+      if (isChecked) AppState.selectedItems.add(name);
+      else AppState.selectedItems.delete(name);
     });
+    AppState.selectionAnchorIndex = null;
+    renderExplorer();
   };
+
+  window.addEventListener('mouseup', (e) => {
+    if (e.button !== 2) return;
+    AppState.rightDragSelecting = false;
+    AppState.rightDragStartName = '';
+  });
 
   document.addEventListener('click', (e) => {
     if (!e.target.closest('#archiveContextMenu')) hideArchiveContextMenu();
