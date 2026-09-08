@@ -1,26 +1,25 @@
 """
 Crow Pack - PySide6 WebChannel Core Bridge
-UI와 파이썬 아카이브 엔진 간의 네이티브 양방향 브릿지 (Crow Pack v1.1.0)
+UI와 파이썬 아카이브 엔진 간의 네이티브 양방향 브릿지 (Crow Pack v1.5.0)
 """
 
 import json
 import os
 import shutil
 import subprocess
-import sys
 import urllib.error
 import urllib.request
-import winreg
 
-from PySide6.QtCore import QBuffer, QByteArray, QIODevice, QObject, Qt, Signal, Slot
+from PySide6.QtCore import QBuffer, QByteArray, QIODevice, Qt, Signal, Slot
 from PySide6.QtGui import QImageReader
 from PySide6.QtWidgets import QFileDialog
 
 from ..engine.archive_manager import ArchiveManager
 from ..engine.pdf_optimizer import PdfOptimizer
+from .tools_bridge import ToolsBridge
 
 
-class CoreBridge(QObject):
+class CoreBridge(ToolsBridge):
     """JavaScript와 통신하는 핵심 네이티브 브릿지 클래스"""
 
     _BLOCKED_PREVIEW_EXTENSIONS = {
@@ -30,8 +29,8 @@ class CoreBridge(QObject):
     _IMAGE_PREVIEW_EXTENSIONS = {".bmp", ".gif", ".jpeg", ".jpg", ".png", ".webp"}
     _MAX_IMAGE_PREVIEW_BYTES = 20 * 1024**2
     _MAX_IMAGE_PREVIEW_PIXELS = 40_000_000
-    APP_VERSION = "1.1.0"
-    RELEASE_TAG = "v1.1.0"
+    APP_VERSION = "1.5.0"
+    RELEASE_TAG = "v1.5.0"
     LATEST_RELEASE_API = "https://api.github.com/repos/CrowScienceLab/Crow-Pack/releases/latest"
     
     progressEvent = Signal(int, int, str)
@@ -44,7 +43,7 @@ class CoreBridge(QObject):
     def selectArchiveFile(self) -> str:
         """압축 파일 선택 다이얼로그"""
         filter_str = (
-            "모든 지원 파일 (*.zip *.alz *.egg *.7z *.rar *.tar *.tar.gz *.tgz *.tar.bz2 *.tbz2 *.tar.xz *.txz *.cab *.iso);;"
+            "모든 지원 파일 (*.zip *.cbz *.alz *.egg *.7z *.rar *.tar *.tar.gz *.tgz *.tar.bz2 *.tbz2 *.tar.xz *.txz *.cab *.iso);;"
             "ZIP 아카이브 (*.zip);;"
             "알집 ALZ / EGG (*.alz *.egg);;"
             "7-Zip 아카이브 (*.7z);;"
@@ -227,7 +226,8 @@ class CoreBridge(QObject):
                     os.remove(temp_file)
 
     @Slot(str, str, bool, result=str)
-    def exportArchiveItems(self, file_path: str, items_json: str, move_after_copy: bool = False) -> str:
+    @Slot(str, str, bool, str, result=str)
+    def exportArchiveItems(self, file_path: str, items_json: str, move_after_copy: bool = False, password: str = '') -> str:
         """선택 항목을 폴더로 복사하고, ZIP에 한해 원본 항목을 선택적으로 삭제"""
         try:
             items = json.loads(items_json)
@@ -252,6 +252,7 @@ class CoreBridge(QObject):
                 destination,
                 mode="current",
                 selected_files=items,
+                password=password or None,
                 progress_callback=on_progress,
             )
             if move_after_copy:
@@ -548,92 +549,14 @@ class CoreBridge(QObject):
 
     @Slot(result=str)
     def registerFileAssociations(self) -> str:
-        """현재 사용자에게 Crow Pack을 연결 후보로 등록하고 기본 앱 설정 열기"""
+        from ..engine.shell_integration import EXTENSIONS, register
         try:
-            if getattr(sys, "frozen", False):
-                open_command = f'"{sys.executable}" "%1"'
-                icon_path = sys.executable
-            else:
-                pythonw = os.path.join(os.path.dirname(sys.executable), "pythonw.exe")
-                launcher = pythonw if os.path.exists(pythonw) else sys.executable
-                main_script = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "main.py"))
-                open_command = f'"{launcher}" "{main_script}" "%1"'
-                icon_path = os.path.abspath(
-                    os.path.join(os.path.dirname(__file__), "..", "..", "assets", "crow_pack.ico")
-                )
-
-            prog_id = "CrowPack.Archive"
-            classes_root = r"Software\Classes"
-            capabilities = r"Software\Crow Science Lab\Crow Pack\Capabilities"
-            extensions = [
-                ".7z", ".alz", ".bz2", ".cab", ".egg", ".gz", ".iso",
-                ".rar", ".tar", ".tbz2", ".tgz", ".txz", ".xz", ".zip",
-            ]
-            application_key = rf"{classes_root}\Applications\CrowPack.exe"
-            with winreg.CreateKey(winreg.HKEY_CURRENT_USER, f"{classes_root}\\{prog_id}") as key:
-                winreg.SetValueEx(key, None, 0, winreg.REG_SZ, "Crow Pack Archive")
-            with winreg.CreateKey(winreg.HKEY_CURRENT_USER, f"{classes_root}\\{prog_id}\\DefaultIcon") as key:
-                winreg.SetValueEx(key, None, 0, winreg.REG_SZ, f'"{icon_path}",0')
-            with winreg.CreateKey(winreg.HKEY_CURRENT_USER, f"{classes_root}\\{prog_id}\\shell\\open\\command") as key:
-                winreg.SetValueEx(key, None, 0, winreg.REG_SZ, open_command)
-            with winreg.CreateKey(winreg.HKEY_CURRENT_USER, application_key) as key:
-                winreg.SetValueEx(key, "FriendlyAppName", 0, winreg.REG_SZ, "Crow Pack")
-                winreg.SetValueEx(key, "ApplicationCompany", 0, winreg.REG_SZ, "Crow Science Lab")
-                winreg.SetValueEx(key, "ApplicationDescription", 0, winreg.REG_SZ, "압축 파일과 ISO 이미지 탐색")
-            with winreg.CreateKey(
-                winreg.HKEY_CURRENT_USER,
-                f"{application_key}\\shell\\open\\command",
-            ) as key:
-                winreg.SetValueEx(key, None, 0, winreg.REG_SZ, open_command)
-            with winreg.CreateKey(winreg.HKEY_CURRENT_USER, f"{application_key}\\SupportedTypes") as key:
-                for extension in extensions:
-                    winreg.SetValueEx(key, extension, 0, winreg.REG_SZ, "")
-            with winreg.CreateKey(winreg.HKEY_CURRENT_USER, capabilities) as key:
-                winreg.SetValueEx(key, "ApplicationName", 0, winreg.REG_SZ, "Crow Pack")
-                winreg.SetValueEx(key, "ApplicationDescription", 0, winreg.REG_SZ, "압축 파일과 ISO 이미지 탐색")
-                winreg.SetValueEx(key, "ApplicationIcon", 0, winreg.REG_SZ, f'"{icon_path}",0')
-            with winreg.CreateKey(winreg.HKEY_CURRENT_USER, f"{capabilities}\\FileAssociations") as key:
-                for extension in extensions:
-                    winreg.SetValueEx(key, extension, 0, winreg.REG_SZ, prog_id)
-            with winreg.CreateKey(winreg.HKEY_CURRENT_USER, r"Software\RegisteredApplications") as key:
-                winreg.SetValueEx(key, "Crow Pack", 0, winreg.REG_SZ, capabilities)
-            claimed_extensions = []
-            for extension in extensions:
-                extension_key = f"{classes_root}\\{extension}"
-                try:
-                    with winreg.OpenKey(winreg.HKEY_CLASSES_ROOT, extension) as existing_key:
-                        existing_prog_id, _ = winreg.QueryValueEx(existing_key, None)
-                except OSError:
-                    existing_prog_id = ""
-                with winreg.CreateKey(winreg.HKEY_CURRENT_USER, extension_key) as key:
-                    if not existing_prog_id:
-                        winreg.SetValueEx(key, None, 0, winreg.REG_SZ, prog_id)
-                        claimed_extensions.append(extension)
-                with winreg.CreateKey(
-                    winreg.HKEY_CURRENT_USER,
-                    f"{classes_root}\\{extension}\\OpenWithProgids",
-                ) as key:
-                    winreg.SetValueEx(key, prog_id, 0, winreg.REG_NONE, b"")
-
-            try:
-                import ctypes
-
-                ctypes.windll.shell32.SHChangeNotify(0x08000000, 0, None, None)
-            except Exception:
-                pass
-            os.startfile("ms-settings:defaultapps")
-            return json.dumps({
-                "success": True,
-                "registered_extensions": extensions,
-                "claimed_extensions": claimed_extensions,
-                "message": (
-                    f"Crow Pack을 {len(extensions)}개 확장자의 연결 후보로 등록했습니다. "
-                    f"기존 기본 앱이 없던 {len(claimed_extensions)}개 확장자는 Crow Pack에 연결했습니다. "
-                    "Windows 기본 앱 화면에서 나머지 확장자를 선택하세요."
-                ),
-            }, ensure_ascii=False)
-        except Exception as e:
-            return json.dumps({"success": False, "error": str(e)}, ensure_ascii=False)
+            register(menu=False)
+            self.openDefaultApps()
+            return json.dumps({"success": True, "registered_extensions": EXTENSIONS,
+                               "message": "연결 후보 등록 완료. Windows 설정에서 기본 앱을 선택하세요."}, ensure_ascii=False)
+        except Exception as exc:
+            return json.dumps({"success": False, "error": str(exc)}, ensure_ascii=False)
 
     @Slot(str)
     def openFolder(self, path: str):

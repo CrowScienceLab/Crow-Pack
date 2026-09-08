@@ -1,6 +1,6 @@
 @echo off
 setlocal EnableExtensions EnableDelayedExpansion
-title Crow Pack v1.1.0
+title Crow Pack v1.5.0
 cd /d "%~dp0"
 
 if exist "CrowPack\CrowPack.exe" (

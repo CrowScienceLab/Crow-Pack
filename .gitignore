@@ -18,3 +18,4 @@ release/*.sha256
 *.part
 associate_extensions.bat
 tests/workspace_*/
+work/

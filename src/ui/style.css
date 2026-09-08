@@ -205,20 +205,24 @@ body {
 .tool-icon-btn.labeled-tool-btn {
   width: auto;
   min-width: 72px;
-  height: 48px;
-  padding: 5px 8px;
-  flex-direction: column;
-  gap: 3px;
+  height: auto;
+  min-height: 60px;
+  padding: 7px 10px;
+  display: grid;
+  grid-template-rows: 26px auto;
+  justify-items: center;
+  align-content: center;
+  gap: 5px;
+  flex-shrink: 0;
 }
 
 .labeled-tool-btn .tool-btn-label {
-  max-width: 82px;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  max-width: none;
+  overflow: visible;
   white-space: nowrap;
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 700;
-  line-height: 1.05;
+  line-height: 1.4;
 }
 
 .tool-icon-btn svg {
@@ -1190,4 +1194,86 @@ body[data-theme]:not([data-theme="dark"]) .info-help-copy strong {
 @keyframes fadeIn {
   from { opacity: 0; transform: scale(0.98); }
   to { opacity: 1; transform: scale(1); }
+}
+
+.pack-modal { width: min(630px, 94vw); max-height: 92vh; }
+.compact-modal { max-height: 94vh; }
+.modal-body { overflow-y: auto; min-height: 0; }
+.pack-row { display: flex; flex-wrap: wrap; gap: 6px; }
+.pack-result { white-space: pre-wrap; overflow-wrap: anywhere; font: 12px/1.6 Consolas, monospace; max-height: 150px; overflow: auto; background: var(--bg-main); padding: 8px; border-radius: 6px; }
+.pack-modal label { display: grid; gap: 6px; font-size: 12px; }
+.pack-modal [hidden] { display: none !important; }
+.tool-icon-btn svg { display: block; width: 24px; height: 24px; flex-shrink: 0; }
+.labeled-tool-btn > span:first-child:not(.tool-btn-label) { display: flex; align-items: center; justify-content: center; width: 26px; height: 26px; line-height: 0; }
+.labeled-tool-btn .tool-btn-label { height: auto; min-height: 14px; flex-shrink: 0; line-height: 1.4; }
+.crow-navbar { --navbar-height: 80px; height: auto; min-height: 80px; padding-block: 8px; }
+.nav-left-group { width: 100%; min-width: 0; }
+#navGroupHome { overflow-x: auto; padding-block: 2px; }
+#packSettings .labeled-tool-btn { grid-template-columns: 26px auto; grid-template-rows: auto; justify-content: start; gap: 12px; width: 100%; min-height: 52px; text-align: left; }
+#packSettings .tool-btn-label { font-size: 12px; white-space: normal; overflow-wrap: anywhere; justify-self: start; }
+#compressFileListPreview { flex-shrink: 0; min-height: 50px; max-height: 90px; }
+.nav-actions { gap: 6px; }
+#passwordConfirm { margin-top: 6px; }
+#passwordStrength { display: block; margin-top: 5px; font-size: 12px; }
+.brand-text { white-space: nowrap; }
+.nav-brand { flex-shrink: 0; }
+.home-drop-zone { max-height: none; overflow: visible; }
+
+/* v1.5 review redesign: compact home, five visible tools, quiet settings. */
+.crow-navbar { --navbar-height: 58px; height: 58px; min-height: 58px; padding-block: 0; }
+#navGroupHome { overflow: visible; padding-block: 0; }
+#navGroupHome .tool-icon-btn { width: 38px; height: 38px; min-width: 38px; min-height: 38px; padding: 0; display: flex; }
+#navGroupHome .tool-btn-label { display: none; }
+.brand-crow-logo { width: 40px; height: 40px; }
+.crow-brand-image { width: 100%; height: 100%; display: block; object-fit: contain; }
+#viewHome { padding: 14px 20px; gap: 10px; }
+.home-drop-zone { padding: 20px 22px; }
+.action-card { padding: 16px; gap: 7px; }
+.action-card-icon { width: 44px; height: 44px; }
+.home-drop-hint { margin-top: 9px; }
+.format-badges-row { margin-top: 8px; }
+
+.pack-modal { width: min(700px, 96vw); }
+#packTools .modal-body { gap: 9px; overflow: hidden; max-height: none; padding-block: 12px; }
+.pack-tool-tabs { display: grid; grid-template-columns: repeat(5, 1fr); gap: 7px; }
+.pack-tool-tab { min-width: 0; height: 78px; padding: 9px 5px; border: 1px solid var(--border-subtle); border-radius: 9px; background: var(--bg-main); color: var(--text-secondary); cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 7px; font: 700 10px/1.2 var(--font-family); }
+.pack-tool-tab:hover { background: var(--bg-card-hover); color: var(--text-primary); }
+.pack-tool-tab.active { color: var(--text-primary); border-color: var(--accent-cyan); background: var(--accent-soft); box-shadow: inset 0 0 0 1px var(--accent-cyan); }
+.pack-tool-icon { width: 30px; height: 30px; display: grid; place-items: center; }
+.pack-tool-icon svg { width: 28px; height: 28px; display: block; }
+.pack-tool-intro { min-height: 50px; padding: 9px 11px; border-left: 3px solid var(--accent-cyan); border-radius: 5px; background: var(--bg-main); display: flex; flex-direction: column; justify-content: center; gap: 3px; }
+.pack-tool-intro strong { font-size: 12px; color: var(--text-primary); }
+.pack-tool-intro span { font-size: 10px; line-height: 1.4; color: var(--text-muted); }
+.pack-options-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 12px; align-items: end; }
+.pack-check { min-height: 30px; display: flex !important; grid-template-columns: auto 1fr; align-items: center; }
+#packTools #packPaths { min-height: 38px; max-height: 54px; }
+#packTools #packResult:empty, #packTools #packCopy { display: none; }
+#packTools #packResult:not(:empty) + #packCopy { display: flex; }
+#packTools #packResult { max-height: 55px; }
+#packTools #packRun { align-self: flex-end; min-width: 110px; justify-content: center; }
+
+#packSettings .modal-body { gap: 10px; overflow: hidden; max-height: none; padding-block: 12px; }
+.settings-section { border: 1px solid var(--border-subtle); border-radius: 8px; background: var(--bg-main); overflow: hidden; }
+.settings-section > h3 { margin: 0; padding: 8px 11px; border-bottom: 1px solid var(--border-subtle); color: var(--text-primary); background: var(--bg-card); font-size: 11px; }
+#packSettings .settings-panel { padding: 9px 11px; border: 0; border-radius: 0; background: transparent; gap: 8px; }
+#packSettings .settings-title { display: none; }
+#packSettings .setting-row { grid-template-columns: 84px 1fr; }
+#packSettings .theme-choice-group { grid-template-columns: repeat(3, 1fr); }
+#packSettings .theme-choice { font-size: 10px; padding: 6px 8px; }
+#packSettings .theme-choice { height: 34px; position: relative; }
+#packSettings .theme-choice input { position: absolute; opacity: 0; pointer-events: none; }
+#packSettings .theme-swatch { flex: 0 0 17px; }
+.settings-action-row { min-height: 52px; padding: 8px 11px; display: flex; align-items: center; justify-content: space-between; gap: 12px; border-top: 1px solid var(--border-subtle); }
+.settings-action-row:first-of-type { border-top: 0; }
+.settings-action-row > div:first-child { min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.settings-action-row strong { font-size: 11px; color: var(--text-primary); }
+.settings-action-row span, .plain-check { font-size: 10px; color: var(--text-muted); }
+.pack-modal label.plain-check { display: flex; flex-direction: row; align-items: center; gap: 6px; }
+#packSettings .tool-icon-btn, #packSettings .labeled-tool-btn { width: auto; min-width: 0; min-height: 0; height: auto; display: flex; padding: 6px 12px; }
+
+@media (max-width: 720px) {
+  .brand-title-wrap { display: none; }
+  .nav-brand { padding-right: 5px; }
+  .pack-tool-tab { height: 72px; font-size: 9px; }
+  .pack-options-grid { grid-template-columns: 1fr; }
 }

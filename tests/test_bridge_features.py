@@ -43,13 +43,13 @@ class TestBridgeFeatures(unittest.TestCase):
         response.__enter__.return_value = response
         response.__exit__.return_value = False
         response.read.return_value = json.dumps({
-            "tag_name": "v1.1.0",
-            "html_url": "https://github.com/CrowScienceLab/Crow-Pack/releases/tag/v1.1.0",
+            "tag_name": "v1.5.0",
+            "html_url": "https://github.com/CrowScienceLab/Crow-Pack/releases/tag/v1.5.0",
         }).encode("utf-8")
         with patch("src.bridge.core_bridge.urllib.request.urlopen", return_value=response):
             result = json.loads(CoreBridge().checkForUpdates())
         self.assertTrue(result["success"])
-        self.assertEqual(result["version"], "1.1.0")
+        self.assertEqual(result["version"], "1.5.0")
         self.assertFalse(result["update_available"])
 
     def test_update_status_reports_network_error(self):
@@ -123,18 +123,20 @@ class TestBridgeFeatures(unittest.TestCase):
         fake_key = MagicMock()
         fake_key.__enter__.return_value = fake_key
         with (
-            patch("src.bridge.core_bridge.winreg.CreateKey", return_value=fake_key) as create_key,
-            patch("src.bridge.core_bridge.winreg.SetValueEx") as set_value,
-            patch("src.bridge.core_bridge.winreg.OpenKey", side_effect=FileNotFoundError),
-            patch("src.bridge.core_bridge.winreg.QueryValueEx", side_effect=FileNotFoundError),
+            patch("src.engine.shell_integration.winreg.CreateKey", return_value=fake_key) as create_key,
+            patch("src.engine.shell_integration.winreg.SetValueEx") as set_value,
+            patch("src.engine.shell_integration.winreg.OpenKey", side_effect=FileNotFoundError),
+            patch("src.engine.shell_integration.winreg.QueryValueEx", side_effect=FileNotFoundError),
             patch("src.bridge.core_bridge.os.startfile") as start_file,
         ):
             result = json.loads(CoreBridge().registerFileAssociations())
         self.assertTrue(result["success"])
         self.assertGreater(create_key.call_count, 4)
         self.assertGreater(set_value.call_count, 10)
-        self.assertEqual(len(result["claimed_extensions"]), len(result["registered_extensions"]))
-        start_file.assert_called_once_with("ms-settings:defaultapps")
+        self.assertIn('.cbz', result['registered_extensions'])
+        self.assertNotIn('.docx', result['registered_extensions'])
+        self.assertFalse(any('UserChoice' in str(call) for call in create_key.call_args_list))
+        start_file.assert_called_once_with("ms-settings:defaultapps?registeredAppUser=Crow%20Pack")
 
 
 if __name__ == "__main__":

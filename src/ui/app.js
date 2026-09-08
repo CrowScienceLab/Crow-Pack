@@ -1,5 +1,5 @@
 /**
- * Crow Pack v1.1.0 - Frontend Interaction Logic
+ * Crow Pack v1.5.0 - Frontend Interaction Logic
  * 칠흑 까마귀 테마, 툴바 컨텍스트 전환, 플로팅 툴팁 엔진 및 드래그앤드롭
  */
 
@@ -45,7 +45,7 @@ const TRANSLATIONS = {
     'nav.pdf': 'PDF 용량 조절',
     'nav.update': '업데이트 확인',
     'nav.association': '앱 확장자 연결',
-    'nav.info': '정보와 사용법',
+    'nav.info': '도움말',
     'iso.title': '💿 ISO 이미지',
     'iso.readTab': 'ISO 읽기',
     'iso.createTab': 'ISO 만들기',
@@ -63,7 +63,7 @@ const TRANSLATIONS = {
     'common.clear': '비우기',
     'common.close': '닫기',
     'common.confirm': '확인',
-    'info.title': 'ℹ️ 정보와 사용법',
+    'info.title': 'ℹ️ 도움말',
     'info.author': '제작: Crow Science Lab',
     'info.summary': '압축 파일과 ISO 이미지를 안전하게 탐색·복사',
     'info.help': '<strong>💡 사용법 안내:</strong><br>• <strong>압축 해제</strong>: 압축 파일을 열면 상단 도구로 현재 폴더 또는 지정 폴더에 풀 수 있습니다.<br>• <strong>새로 압축</strong>: 파일/폴더를 끌어다 놓고 압축 프리셋·분할·암호를 설정합니다.<br>• <strong>ISO 이미지</strong>: 읽기 탭은 ISO를 탐색·복사하고, 만들기 탭은 일반 데이터 ISO를 생성합니다.<br>• <strong>PDF 용량 조절</strong>: 문서 구성을 분석한 뒤 다섯 가지 단계 중 하나를 선택하면 세부 설정은 자동 적용됩니다.',
@@ -351,7 +351,7 @@ function previewContextImage() {
   AppState.pyBridge.getImagePreview(
     AppState.currentArchiveInfo.file_path,
     entry.fullName,
-    '',
+    AppState.archivePassword || '',
     (resJson) => {
       hideProgress();
       const result = JSON.parse(resJson);
@@ -377,6 +377,7 @@ function exportContextItems(moveAfterCopy) {
     AppState.currentArchiveInfo.file_path,
     JSON.stringify(items),
     moveAfterCopy,
+    AppState.archivePassword || '',
     (resJson) => {
       const result = JSON.parse(resJson);
       if (!result.success) {
@@ -696,6 +697,24 @@ function renderExplorer() {
   sortedItems.forEach((entry, index) => {
     const tr = document.createElement('tr');
     tr.dataset.fullName = entry.fullName;
+    tr.addEventListener('pointerdown', event => {
+      if (event.button !== 0 || event.target.tagName === 'INPUT') return;
+      const start = {x: event.clientX, y: event.clientY};
+      const move = e => {
+        if (!(e.buttons & 1)) { tr.removeEventListener('pointermove', move); return; }
+        if (Math.hypot(e.clientX-start.x, e.clientY-start.y) < 8) return;
+        tr.removeEventListener('pointermove', move);
+        if (!AppState.pyBridge) return;
+        if (!AppState.selectedItems.has(entry.fullName)) AppState.selectedItems = new Set([entry.fullName]);
+        AppState.pyBridge.dragArchiveItems(AppState.currentArchiveInfo.file_path,
+          JSON.stringify([...AppState.selectedItems]), AppState.archivePassword || '', result => {
+            const response = JSON.parse(result);
+            if (!response.success) alert(response.error);
+          });
+      };
+      tr.addEventListener('pointermove', move);
+      tr.addEventListener('pointerup', () => tr.removeEventListener('pointermove', move), {once:true});
+    });
 
     const isChecked = isEntrySelected(entry);
     const iconSvg = entry.isDir ? window.CrowIcons.folder : window.CrowIcons.file;
@@ -828,7 +847,7 @@ function updateExplorerStatusBar() {
 function openFileTemp(itemName) {
   if (!AppState.currentArchiveInfo || !AppState.pyBridge) return;
   showProgress('파일 여는 중...', itemName);
-  AppState.pyBridge.extractSingleAndOpen(AppState.currentArchiveInfo.file_path, itemName, "", (resJson) => {
+  AppState.pyBridge.extractSingleAndOpen(AppState.currentArchiveInfo.file_path, itemName, AppState.archivePassword || "", (resJson) => {
     hideProgress();
     const res = JSON.parse(resJson);
     if (!res.success) {
@@ -1112,7 +1131,7 @@ function initNativeBridge() {
   if (typeof QWebChannel !== 'undefined') {
     new QWebChannel(qt.webChannelTransport, (channel) => {
       AppState.pyBridge = channel.objects.coreBridge;
-      console.log('PySide6 Native Bridge Connected (Crow Pack v1.1.0)!');
+      console.log('PySide6 Native Bridge Connected (Crow Pack v1.5.0)!');
 
       AppState.pyBridge.progressEvent.connect((current, total, file) => {
         updateProgress(current, total, file);
@@ -1255,7 +1274,7 @@ function initEvents() {
     );
 
     if (AppState.pyBridge) {
-      AppState.pyBridge.extractArchiveWithOption(archivePath, "smart", useDefaultDir, selJson, "", (resJson) => {
+      AppState.pyBridge.extractArchiveWithOption(archivePath, "smart", useDefaultDir, selJson, AppState.archivePassword || "", (resJson) => {
         const res = JSON.parse(resJson);
         if (res.success) {
           finishProgress(`${res.extracted_count}개 파일 ${isReadOnly ? '복사' : '해제'} 완료`, res.dest_dir);
@@ -1273,7 +1292,7 @@ function initEvents() {
   document.getElementById('btnToolTest').onclick = () => {
     if (!AppState.currentArchiveInfo || !AppState.pyBridge) return;
     showProgress('무결성 검사 중...', '손상 여부를 테스트하고 있습니다.');
-    AppState.pyBridge.testArchive(AppState.currentArchiveInfo.file_path, "", (resJson) => {
+    AppState.pyBridge.testArchive(AppState.currentArchiveInfo.file_path, AppState.archivePassword || "", (resJson) => {
       hideProgress();
       const res = JSON.parse(resJson);
       if (res.success) {
@@ -1460,6 +1479,7 @@ function initEvents() {
   };
 
   function triggerCompress(changeFolder) {
+    if (window.validateSecurity && !window.validateSecurity()) return;
     if (AppState.compressSourcePaths.length === 0) {
       alert('압축할 파일이나 폴더를 추가해주세요.');
       return;
@@ -1487,6 +1507,9 @@ function initEvents() {
           const res = JSON.parse(resJson);
           if (res.success) {
             finishProgress(`아카이브 생성 완료: ${res.output_path}`, res.output_dir);
+            if (pwd) document.getElementById('progressFileText').textContent = '비밀번호는 압축파일과 다른 전달 수단으로 전달하세요.';
+            document.getElementById('txtCompressPwd').value = '';
+            if (document.getElementById('passwordConfirm')) document.getElementById('passwordConfirm').value = '';
           } else {
             hideProgress();
             if (res.error && !res.error.includes("취소")) {

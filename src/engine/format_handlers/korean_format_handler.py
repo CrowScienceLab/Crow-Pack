@@ -10,7 +10,7 @@ import struct
 import zlib
 from typing import Any, Dict, List
 
-from ..archive_safety import DEFAULT_POLICY, safe_destination, validate_entries
+from ..archive_safety import DEFAULT_POLICY, member_is_selected, safe_destination, validate_entries
 from ..encoding_helper import normalize_korean_text, smart_decode_filename
 
 
@@ -138,7 +138,7 @@ class KoreanFormatHandler:
         return items
 
     @classmethod
-    def extract_alz(cls, file_path: str, target_dir: str, progress_callback=None) -> List[str]:
+    def extract_alz(cls, file_path: str, target_dir: str, progress_callback=None, selected_files=None) -> List[str]:
         """ALZ 파일 전체 압축 해제"""
         extracted_files = []
         items = cls.list_alz(file_path)
@@ -147,6 +147,8 @@ class KoreanFormatHandler:
 
         with open(file_path, 'rb') as f:
             for idx, item in enumerate(items):
+                if not member_is_selected(item['name'], selected_files):
+                    continue
                 if progress_callback:
                     progress_callback(idx + 1, total_items, item["name"])
 
@@ -259,7 +261,7 @@ class KoreanFormatHandler:
         return items
 
     @classmethod
-    def extract_egg(cls, file_path: str, target_dir: str, progress_callback=None) -> List[str]:
+    def extract_egg(cls, file_path: str, target_dir: str, progress_callback=None, selected_files=None) -> List[str]:
         """EGG 파일 전체 압축 해제"""
         extracted_files = []
         items = cls.list_egg(file_path)
@@ -268,6 +270,8 @@ class KoreanFormatHandler:
 
         with open(file_path, 'rb') as f:
             for idx, item in enumerate(items):
+                if not member_is_selected(item['name'], selected_files):
+                    continue
                 if progress_callback:
                     progress_callback(idx + 1, total_items, item["name"])
 

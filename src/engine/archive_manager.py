@@ -52,7 +52,7 @@ class ArchiveManager:
         _, base_ext = os.path.splitext(ext)
         base_ext = base_ext.lstrip('.')
 
-        if base_ext in ['zip', 'jar', 'apk', 'docx', 'xlsx', 'pptx']:
+        if base_ext in ['zip', 'cbz', 'jar', 'apk', 'docx', 'xlsx', 'pptx']:
             return ArchiveFormat.ZIP
         elif base_ext == '7z':
             return ArchiveFormat.SEVEN_ZIP
@@ -246,9 +246,9 @@ class ArchiveManager:
         if fmt == ArchiveFormat.ZIP:
             extracted = ZipHandler.extract(file_path, final_dest_dir, selected_files, password, progress_callback)
         elif fmt == ArchiveFormat.ALZ:
-            extracted = KoreanFormatHandler.extract_alz(file_path, final_dest_dir, progress_callback)
+            extracted = KoreanFormatHandler.extract_alz(file_path, final_dest_dir, progress_callback, selected_files)
         elif fmt == ArchiveFormat.EGG:
-            extracted = KoreanFormatHandler.extract_egg(file_path, final_dest_dir, progress_callback)
+            extracted = KoreanFormatHandler.extract_egg(file_path, final_dest_dir, progress_callback, selected_files)
         elif fmt in [ArchiveFormat.TAR, ArchiveFormat.TAR_GZ, ArchiveFormat.TAR_BZ2, ArchiveFormat.TAR_XZ]:
             extracted = TarHandler.extract(file_path, final_dest_dir, selected_files, progress_callback)
         elif fmt == ArchiveFormat.SEVEN_ZIP:
@@ -273,6 +273,10 @@ class ArchiveManager:
         신규 아카이브 생성 (분할 압축 지원)
         """
         fmt = format_type.upper()
+        if os.path.exists(output_path):
+            raise FileExistsError("출력 파일이 이미 존재합니다.")
+        if password and fmt not in {"ZIP", "7Z"}:
+            raise ValueError("암호 보호에는 ZIP 또는 7Z를 선택하세요.")
 
         # 분할 압축 처리 (7Z 포맷 또는 표준 분할)
         if split_size_mb > 0 and fmt == "7Z":

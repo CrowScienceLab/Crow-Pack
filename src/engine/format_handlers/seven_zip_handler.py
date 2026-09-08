@@ -122,9 +122,13 @@ class SevenZipHandler:
         os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
         
         filters = [{'id': py7zr.FILTER_LZMA2, 'preset': max(1, min(9, level))}]
+        if password:
+            filters.append({'id': py7zr.FILTER_CRYPTO_AES256_SHA256})
 
         targets = list(iter_source_files(file_paths, output_path))
         with py7zr.SevenZipFile(output_path, 'w', password=password, filters=filters) as archive:
+            if password:
+                archive.set_encrypted_header(True)
             for full_path, archive_name in targets:
                 archive.write(full_path, arcname=normalize_korean_text(archive_name).replace('\\', '/'))
 

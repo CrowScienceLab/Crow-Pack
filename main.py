@@ -1,14 +1,15 @@
 """
 Crow Pack - Main Application Entry Point
-Crow Pack v1.1.0 - 압축과 풀기 앱 (제작: Crow Science Lab)
+Crow Pack v1.5.0 - 압축과 풀기 앱 (제작: Crow Science Lab)
 """
 
 import json
 import os
 import sys
 
-from PySide6.QtCore import Qt, QUrl, Signal
+from PySide6.QtCore import Qt, QTimer, QUrl, Signal
 from PySide6.QtGui import QColor, QIcon, QPalette
+from PySide6.QtNetwork import QLocalServer, QLocalSocket
 from PySide6.QtWebChannel import QWebChannel
 from PySide6.QtWebEngineCore import QWebEnginePage, QWebEngineProfile, QWebEngineSettings
 from PySide6.QtWebEngineWidgets import QWebEngineView
@@ -77,10 +78,18 @@ class DropAwareWebEngineView(QWebEngineView):
 
 
 class CrowPackWindow(QMainWindow):
+    def closeEvent(self, event):
+        if self.bridge._job and self.bridge._job.is_alive():
+            event.ignore()
+            return
+        if self.bridge._drag_manager:
+            self.bridge._drag_manager.close()
+        super().closeEvent(event)
+
     def __init__(self, initial_files=None):
         super().__init__()
         # 창 상단 타이틀
-        self.setWindowTitle("Crow Pack v1.1.0 - 압축과 풀기 앱")
+        self.setWindowTitle("Crow Pack v1.5.0 - 압축과 풀기 앱")
         self.setWindowIcon(QIcon(bundled_path("assets", "crow_pack.ico")))
         
         # 쾌적하고 균형 잡힌 창 크기 (780 x 520)
@@ -137,17 +146,81 @@ class CrowPackWindow(QMainWindow):
 
 
 def main():
+    import ctypes
+    ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID('CrowScienceLab.CrowPack')
+    if '--register' in sys.argv or '--unregister' in sys.argv:
+        from src.engine.shell_integration import register, unregister
+        (unregister if '--unregister' in sys.argv else register)()
+        return
     app = QApplication(sys.argv)
     app.setApplicationName("Crow Pack")
     app.setOrganizationName("Crow Science Lab")
+    if '--default-apps' in sys.argv:
+        os.startfile('ms-settings:defaultapps?registeredAppUser=Crow%20Pack')
+        return
     app.setWindowIcon(QIcon(bundled_path("assets", "crow_pack.ico")))
 
     initial_files = []
+    shell_action = None
+    if '--shell' in sys.argv:
+        index = sys.argv.index('--shell')
+        shell_action = sys.argv[index + 1]
     if len(sys.argv) > 1:
         initial_files = [os.path.abspath(p) for p in sys.argv[1:] if os.path.exists(p)]
 
     window = CrowPackWindow(initial_files)
+    if shell_action:
+        # Explorer invokes Document verbs once per selected file; collect locally.
+        import getpass
+        server_name = 'CrowPack-shell-' + getpass.getuser()
+        client = QLocalSocket()
+        client.connectToServer(server_name)
+        if client.waitForConnected(300):
+            client.write((json.dumps([shell_action, initial_files]) + '\n').encode('utf-8'))
+            client.waitForBytesWritten(1000)
+            client.disconnectFromServer()
+            return
+        window.initial_files = []
+        server = QLocalServer(window)
+        server.setSocketOptions(QLocalServer.UserAccessOption)
+        server.listen(server_name)
+        pending = [shell_action, list(initial_files)]
+        timer = QTimer(window)
+        timer.setSingleShot(True)
+        def dispatch():
+            window.web_view.page().runJavaScript('window.handleShellAction(' + json.dumps(pending[0]) + ',' + json.dumps(pending[1]) + ');')
+        timer.timeout.connect(dispatch)
+        def receive():
+            socket = server.nextPendingConnection()
+            buffer = bytearray()
+            def read():
+                buffer.extend(bytes(socket.readAll()))
+                if b'\n' not in buffer:
+                    return
+                action, paths = json.loads(buffer.decode('utf-8').split('\n')[0])
+                if action == pending[0]:
+                    pending[1].extend(p for p in paths if p not in pending[1])
+                else:
+                    pending[:] = [action, paths]
+                timer.start(750)
+                socket.disconnectFromServer()
+            socket.readyRead.connect(read)
+            read()
+        server.newConnection.connect(receive)
+        window.web_view.loadFinished.connect(lambda ok: timer.start(750) if ok else None)
     window.show()
+    if '--smoke-test' in sys.argv:
+        from pathlib import Path
+        output = Path(sys.argv[sys.argv.index('--smoke-test') + 1]).resolve()
+        def smoke():
+            def checked(result):
+                output.parent.mkdir(parents=True, exist_ok=True)
+                output.write_text(json.dumps({'version': CoreBridge.APP_VERSION, 'ui_ready': bool(result)}), encoding='utf-8')
+                window.grab().save(str(output.with_suffix('.png')))
+                app.exit(0 if result else 2)
+            window.web_view.page().runJavaScript("Boolean(AppState.pyBridge && document.getElementById('packToolsButton') && document.getElementById('securityMode'))", checked)
+        window.web_view.loadFinished.connect(lambda ok: QTimer.singleShot(1500, smoke) if ok else app.exit(2))
+        QTimer.singleShot(15000, lambda: app.exit(3))
     sys.exit(app.exec())
 
 
