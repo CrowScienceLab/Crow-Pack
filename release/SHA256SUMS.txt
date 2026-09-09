@@ -1,3 +1,3 @@
 e6c64056614635b4b8733590a614d89daf6f6f1b5c6f85a77e1761da39b6562f  CrowPack-v1.5.0-Portable-x64.zip
 1b32f468abd381f95f5e62eb0e52a1bdc67fd8fd590c40d4b0a110a8d6334502  CrowPack-v1.5.0-Setup-x64.exe
-f0587c094d97a29e3f74f5e843056eb5aa6f6f67f81e9d8571fcc3b0032e7258  CrowPack-v1.5.0-Source.zip
+5977d256ab3b476aabfe63ecb505ae038abfcbb2c3ac76e0c34b1127f80b00a7  CrowPack-v1.5.0-Source.zip

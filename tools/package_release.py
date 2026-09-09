@@ -18,10 +18,22 @@ def main():
         for path in sorted((ROOT / 'dist/CrowPack').rglob('*')):
             if path.is_file():
                 archive.write(path, path.relative_to(ROOT / 'dist'))
-    files = subprocess.check_output(['git', 'ls-files', '-z', '--cached', '--others', '--exclude-standard'], cwd=ROOT).decode('utf-8').split('\0')
+    files = subprocess.check_output(
+        [
+            'git',
+            '-c',
+            f'safe.directory={ROOT.as_posix()}',
+            'ls-files',
+            '-z',
+            '--cached',
+            '--others',
+            '--exclude-standard',
+        ],
+        cwd=ROOT,
+    ).decode('utf-8').split('\0')
     with zipfile.ZipFile(OUTPUT / 'CrowPack-v1.5.0-Source.zip', 'w', zipfile.ZIP_DEFLATED) as archive:
         for name in sorted(set(files)):
-            if name and (ROOT / name).is_file():
+            if name and name != 'release/SHA256SUMS.txt' and (ROOT / name).is_file():
                 archive.write(ROOT / name, 'Crow-Pack/' + name)
     shutil.copy2(ROOT / 'docs/V1.5-VALIDATION.md', OUTPUT / 'VALIDATION.md')
     rows = []
