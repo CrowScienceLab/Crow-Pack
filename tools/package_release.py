@@ -5,7 +5,7 @@ import zipfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-VERSION = '1.5.1'
+VERSION = '1.5.2'
 OUTPUT = ROOT / 'release'
 
 
@@ -38,7 +38,7 @@ def main():
                 archive.write(ROOT / name, 'Crow-Pack/' + name)
     rows = []
     for path in sorted(OUTPUT.glob(f'CrowPack-v{VERSION}-*')):
-        if path.suffix.lower() in {'.exe', '.zip'}:
+        if path.suffix.lower() in {'.exe', '.msix', '.zip'}:
             with path.open('rb') as source:
                 digest = hashlib.file_digest(source, 'sha256').hexdigest()
             rows.append(f'{digest}  {path.name}\n')

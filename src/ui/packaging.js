@@ -62,6 +62,25 @@ function handleUpdateCheck(result, manual = false) {
   }
   if (status) status.textContent = `${result.latest_tag} ${packText('사용 가능', 'available')}`;
   const size = result.asset_size ? ` (${formatBytes(result.asset_size)})` : '';
+  if (result.store_managed) {
+    const approved = confirm(
+      `${packText('새 Crow Pack 버전을 사용할 수 있습니다.', 'A new Crow Pack version is available.')}\n\n` +
+      `${result.version} → ${result.latest_tag}\n` +
+      `${packText('Microsoft Store 업데이트 페이지를 여시겠습니까?', 'Open the Microsoft Store update page?')}`
+    );
+    if (!approved) {
+      if (status) status.textContent = packText('업데이트를 나중에 진행합니다.', 'Update postponed.');
+      return;
+    }
+    AppState.pyBridge.openStoreUpdate(raw => {
+      const opened = JSON.parse(raw);
+      if (status) status.textContent = opened.success
+        ? packText('Microsoft Store를 열었습니다.', 'Microsoft Store opened.')
+        : packText('Microsoft Store를 열 수 없습니다.', 'Could not open Microsoft Store.');
+      if (!opened.success && manual) alert(opened.error);
+    });
+    return;
+  }
   const approved = confirm(
     `${packText('새 Crow Pack 버전을 사용할 수 있습니다.', 'A new Crow Pack version is available.')}\n\n` +
     `${result.version} → ${result.latest_tag}${size}\n` +
@@ -149,10 +168,10 @@ document.addEventListener('DOMContentLoaded', () => {
     <section class="settings-section"><h3>화면</h3><div id="packGeneral"></div></section>
     <section class="settings-section"><h3>Windows 연결</h3>
       <div class="settings-action-row"><div><strong>압축 파일 기본 앱</strong><span id="packAssociations">현재 연결 상태 확인 중</span></div><button class="btn" id="packDefaults">설정 열기</button></div>
-      <div class="settings-action-row"><div><strong>탐색기 우클릭 메뉴</strong><span>압축 및 해제 명령을 표시합니다.</span></div><div class="pack-row"><button class="btn" id="packShellOn">사용</button><button class="btn" id="packShellOff">해제</button></div></div>
+      <div class="settings-action-row" id="packShellIntegration"><div><strong>탐색기 우클릭 메뉴</strong><span>압축 및 해제 명령을 표시합니다.</span></div><div class="pack-row"><button class="btn" id="packShellOn">사용</button><button class="btn" id="packShellOff">해제</button></div></div>
     </section>
     <section class="settings-section"><h3>업데이트</h3>
-      <div class="settings-action-row"><div><strong>Crow Pack v1.5.1</strong><span>실행할 때 새 GitHub 릴리스를 자동으로 확인합니다.</span><span id="packUpdateStatus" role="status"></span></div><div id="packUpdateButton"></div></div>
+      <div class="settings-action-row"><div><strong>Crow Pack v1.5.2</strong><span id="packUpdateDescription">실행할 때 새 GitHub 릴리스를 자동으로 확인합니다.</span><span id="packUpdateStatus" role="status"></span></div><div id="packUpdateButton"></div></div>
     </section>`);
   document.getElementById('packGeneral').append(document.querySelector('#modalInfoApp .settings-panel'));
   document.getElementById('packUpdateButton').append(document.getElementById('btnToolUpdate'));
@@ -214,6 +233,13 @@ document.addEventListener('DOMContentLoaded', () => {
   };
   const timer=setInterval(()=>{
     if(!AppState.pyBridge)return;clearInterval(timer);
+    AppState.pyBridge.getDistributionInfo(raw=>{
+      const distribution=JSON.parse(raw);
+      if(distribution.packaged){
+        document.getElementById('packShellIntegration').hidden=true;
+        document.getElementById('packUpdateDescription').textContent=packText('새 릴리스를 확인하고 Microsoft Store에서 업데이트합니다.','Checks for new releases and updates through Microsoft Store.');
+      }
+    });
     AppState.pyBridge.toolFinished.connect(raw=>{const result=JSON.parse(raw);document.getElementById('packRun').disabled=false;
       if(!result.success)lastToolText=result.cancelled?'취소 / Cancelled':result.error;
       else if(result.action==='batch'){const ok=result.result.filter(x=>x.success).length;lastToolText=`성공 / Success: ${ok} · 실패 / Failed: ${result.result.length-ok}\n`+result.result.map(x=>`${x.success?'✓':'✕'} ${x.path}\n${x.error || x.output_dir}`).join('\n');}

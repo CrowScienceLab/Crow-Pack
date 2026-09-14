@@ -1,6 +1,6 @@
 """
 Crow Pack - PySide6 WebChannel Core Bridge
-UI와 파이썬 아카이브 엔진 간의 네이티브 양방향 브릿지 (Crow Pack v1.5.1)
+UI와 파이썬 아카이브 엔진 간의 네이티브 양방향 브릿지 (Crow Pack v1.5.2)
 """
 
 import hashlib
@@ -15,8 +15,8 @@ import urllib.parse
 import urllib.request
 from pathlib import Path
 
-from PySide6.QtCore import QBuffer, QByteArray, QIODevice, Qt, Signal, Slot
-from PySide6.QtGui import QImageReader
+from PySide6.QtCore import QBuffer, QByteArray, QIODevice, Qt, QUrl, Signal, Slot
+from PySide6.QtGui import QDesktopServices, QImageReader
 from PySide6.QtWidgets import QFileDialog
 
 from ..engine.archive_manager import ArchiveManager
@@ -34,8 +34,10 @@ class CoreBridge(ToolsBridge):
     _IMAGE_PREVIEW_EXTENSIONS = {".bmp", ".gif", ".jpeg", ".jpg", ".png", ".webp"}
     _MAX_IMAGE_PREVIEW_BYTES = 20 * 1024**2
     _MAX_IMAGE_PREVIEW_PIXELS = 40_000_000
-    APP_VERSION = "1.5.1"
-    RELEASE_TAG = "v1.5.1"
+    APP_VERSION = "1.5.2"
+    RELEASE_TAG = "v1.5.2"
+    STORE_ID = "9NPBKL0XTKQ7"
+    STORE_URL = f"ms-windows-store://pdp/?productid={STORE_ID}"
     LATEST_RELEASE_API = "https://api.github.com/repos/CrowScienceLab/Crow-Pack/releases/latest"
     RELEASE_DOWNLOAD_PREFIX = "/CrowScienceLab/Crow-Pack/releases/download/"
     MAX_INSTALLER_BYTES = 600 * 1024**2
@@ -57,6 +59,30 @@ class CoreBridge(ToolsBridge):
         if not match:
             raise ValueError(f"지원하지 않는 버전 형식입니다: {version}")
         return tuple(int(value or 0) for value in match.groups())
+
+    @staticmethod
+    def _is_packaged() -> bool:
+        """Return whether Windows launched this process with an MSIX package identity."""
+        if os.name != "nt":
+            return False
+        try:
+            import ctypes
+
+            length = ctypes.c_uint32(0)
+            # A packaged process returns ERROR_INSUFFICIENT_BUFFER for the size probe.
+            return ctypes.windll.kernel32.GetCurrentPackageFullName(ctypes.byref(length), None) == 122
+        except (AttributeError, OSError):
+            return False
+
+    @Slot(result=str)
+    def getDistributionInfo(self) -> str:
+        packaged = self._is_packaged()
+        return json.dumps({
+            "packaged": packaged,
+            "channel": "microsoft-store" if packaged else "github",
+            "store_id": self.STORE_ID,
+            "store_url": self.STORE_URL,
+        }, ensure_ascii=False)
 
     @classmethod
     def _release_installer(cls, release: dict) -> dict:
@@ -575,7 +601,8 @@ class CoreBridge(ToolsBridge):
             if not latest_tag:
                 raise ValueError("최신 릴리스 태그가 비어 있습니다.")
             update_available = self._version_tuple(latest_tag) > self._version_tuple(self.RELEASE_TAG)
-            installer = self._release_installer(release) if update_available else {}
+            store_managed = self._is_packaged()
+            installer = self._release_installer(release) if update_available and not store_managed else {}
             message = (
                 f"새 릴리스 {latest_tag}을 사용할 수 있습니다."
                 if update_available
@@ -587,9 +614,12 @@ class CoreBridge(ToolsBridge):
                 "latest_tag": latest_tag,
                 "update_available": update_available,
                 "release_url": release.get("html_url", ""),
+                "store_managed": store_managed,
+                "store_url": self.STORE_URL if store_managed else "",
                 "message": message,
                 **installer,
             }, ensure_ascii=False)
+
         except (urllib.error.URLError, TimeoutError, ValueError, OSError) as e:
             return json.dumps({
                 "success": False,
@@ -597,6 +627,16 @@ class CoreBridge(ToolsBridge):
                 "update_available": False,
                 "error": f"GitHub 릴리스를 확인할 수 없습니다: {e}",
             }, ensure_ascii=False)
+
+    @Slot(result=str)
+    def openStoreUpdate(self) -> str:
+        """Open the reserved Microsoft Store product page for MSIX-managed updates."""
+        opened = QDesktopServices.openUrl(QUrl(self.STORE_URL))
+        return json.dumps({
+            "success": bool(opened),
+            "store_id": self.STORE_ID,
+            "error": "Microsoft Store 페이지를 열 수 없습니다." if not opened else "",
+        }, ensure_ascii=False)
 
     @Slot()
     def checkForUpdatesAsync(self):

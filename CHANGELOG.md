@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.5.2] - 2026-09-14
+
+- Microsoft Store용 `CrowPack` 제품 및 MSIX 패키지 식별자를 추가.
+- Store 설치판은 GitHub 릴리스를 확인한 뒤 외부 설치 파일 대신 Microsoft Store 업데이트 페이지를 안내.
+- GitHub 설치판은 기존 SHA-256 검증 기반 자동 업데이트 흐름을 유지.
+
 ## [1.5.1] - 2026-09-14
 
 - 앱 실행 시 GitHub 최신 릴리스를 자동 확인하고 새 버전이 있을 때 사용자에게 안내.

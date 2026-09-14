@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Package
+  xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10"
+  xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10"
+  xmlns:uap10="http://schemas.microsoft.com/appx/manifest/uap/windows10/10"
+  xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities"
+  IgnorableNamespaces="uap uap10 rescap">
+  <Identity Name="170231F2.CrowPack" Publisher="CN=2953C017-B9C7-4852-BD5D-ABFF600E3840" Version="1.5.2.0" ProcessorArchitecture="x64" />
+  <Properties>
+    <DisplayName>CrowPack</DisplayName>
+    <PublisherDisplayName>까마구</PublisherDisplayName>
+    <Description>Crow Pack archive manager</Description>
+    <Logo>StoreAssets\StoreLogo.png</Logo>
+  </Properties>
+  <Resources>
+    <Resource Language="ko-kr" />
+    <Resource Language="en-us" />
+  </Resources>
+  <Dependencies>
+    <TargetDeviceFamily Name="Windows.Desktop" MinVersion="10.0.19041.0" MaxVersionTested="10.0.26100.0" />
+  </Dependencies>
+  <Capabilities>
+    <rescap:Capability Name="runFullTrust" />
+  </Capabilities>
+  <Applications>
+    <Application Id="CrowPack" Executable="CrowPack.exe" uap10:RuntimeBehavior="packagedClassicApp" uap10:TrustLevel="mediumIL">
+      <uap:VisualElements DisplayName="Crow Pack" Description="압축 파일을 만들고 풀고 관리하는 Windows 데스크톱 앱" BackgroundColor="transparent" Square150x150Logo="StoreAssets\Square150x150Logo.png" Square44x44Logo="StoreAssets\Square44x44Logo.png">
+        <uap:DefaultTile Wide310x150Logo="StoreAssets\Wide310x150Logo.png" Square310x310Logo="StoreAssets\Square310x310Logo.png" />
+      </uap:VisualElements>
+      <Extensions>
+        <uap:Extension Category="windows.fileTypeAssociation">
+          <uap:FileTypeAssociation Name="crowpackarchives">
+            <uap:SupportedFileTypes>
+              <uap:FileType>.zip</uap:FileType>
+              <uap:FileType>.7z</uap:FileType>
+              <uap:FileType>.rar</uap:FileType>
+              <uap:FileType>.tar</uap:FileType>
+              <uap:FileType>.gz</uap:FileType>
+              <uap:FileType>.bz2</uap:FileType>
+              <uap:FileType>.xz</uap:FileType>
+              <uap:FileType>.cbz</uap:FileType>
+              <uap:FileType>.alz</uap:FileType>
+              <uap:FileType>.egg</uap:FileType>
+              <uap:FileType>.cab</uap:FileType>
+              <uap:FileType>.iso</uap:FileType>
+            </uap:SupportedFileTypes>
+          </uap:FileTypeAssociation>
+        </uap:Extension>
+      </Extensions>
+    </Application>
+  </Applications>
+</Package>

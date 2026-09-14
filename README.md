@@ -1,4 +1,4 @@
-# Crow Pack v1.5.1
+# Crow Pack v1.5.2
 
 ## v1.5 주요 기능
 
@@ -9,6 +9,7 @@
 - 다섯 기능이 항상 보이는 도구 화면, 단순 목록형 설정, 새 Crow Pack 앱 아이콘.
 - Windows 클래식 우클릭 메뉴 및 사용자별 확장자 등록.
 - 실행 시 GitHub 최신 릴리스를 확인하고, 사용자 승인 후 설치 파일을 내려받아 SHA-256 검증 후 업데이트.
+- Microsoft Store 설치판은 새 버전을 확인한 뒤 Store 제품 페이지에서 안전하게 업데이트.
 
 보안·Windows 정책·검증 범위는 [v1.5 검증 문서](docs/V1.5-VALIDATION.md)를 참고하세요.
 
@@ -79,10 +80,20 @@ py -3.12 -m venv .venv
 압축 생성·해제와 ISO 파일 복사를 확인한 뒤 배포하세요.
 
 Inno Setup 6을 설치한 뒤 `build_installer.bat`를 실행하면
-`release\CrowPack-v1.5.1-Setup-x64.exe` 설치본이 만들어집니다. 설치는 현재 사용자 영역에
+`release\CrowPack-v1.5.2-Setup-x64.exe` 설치본이 만들어집니다. 설치는 현재 사용자 영역에
 진행되므로 관리자 권한이 필요하지 않으며 시작 메뉴와 선택형 바탕 화면 바로가기를 제공합니다.
 
+Microsoft Store용 MSIX는 Windows SDK의 `makeappx.exe`가 있는 환경에서 다음 명령으로 만듭니다.
+
+```bat
+build_msix.bat --makeappx "C:\path\to\x64\makeappx.exe"
+```
+
+결과는 `release\CrowPack-v1.5.2-Store-x64.msix`이며 Store ID는 `9NPBKL0XTKQ7`입니다.
+
 ## 보안 동작
+
+Crow Pack은 사용자 파일을 외부 서버로 전송하지 않으며 모든 압축 작업을 로컬에서 처리합니다. 자세한 내용은 [개인정보 처리방침](PRIVACY.md)을 참고하세요.
 
 - 절대 경로, `..`, 링크, Windows 예약 파일명과 경로 충돌을 차단합니다.
 - 항목 수·단일 파일·전체 해제 크기·압축률 제한으로 압축 폭탄 위험을 줄입니다.

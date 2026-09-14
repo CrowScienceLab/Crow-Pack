@@ -3,10 +3,10 @@ VSVersionInfo(
   kids=[StringFileInfo([StringTable('040904B0', [
     StringStruct('CompanyName','Crow Science Lab'),
     StringStruct('FileDescription','Crow Pack file packaging tools'),
-    StringStruct('FileVersion','1.5.1.0'),
+    StringStruct('FileVersion','1.5.2.0'),
     StringStruct('InternalName','CrowPack'),
     StringStruct('OriginalFilename','CrowPack.exe'),
     StringStruct('ProductName','Crow Pack'),
-    StringStruct('ProductVersion','1.5.1')
+    StringStruct('ProductVersion','1.5.2')
   ])]), VarFileInfo([VarStruct('Translation',[1033,1200])])]
 )

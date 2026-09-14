@@ -1,4 +1,5 @@
 """Capture actual Qt WebEngine layouts for packaging QA."""
+import os
 import sys
 from pathlib import Path
 
@@ -6,12 +7,17 @@ from PySide6.QtCore import QTimer
 from PySide6.QtWidgets import QApplication
 
 from main import CrowPackWindow
+from src.bridge.core_bridge import CoreBridge
 
 
 def main():
     app = QApplication([])
+    store_mode = os.environ.get('CROW_STORE_CAPTURE') == '1'
+    if store_mode:
+        CoreBridge._is_packaged = staticmethod(lambda: True)
     window = CrowPackWindow()
-    output = Path('work/ui-qa')
+    window.resize(1366, 768)
+    output = Path('work/store-screenshots' if store_mode else 'work/ui-qa')
     output.mkdir(parents=True, exist_ok=True)
     scripts = [
         ('home', "showHomeView();"),

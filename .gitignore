@@ -2,6 +2,7 @@ __pycache__/
 *.py[cod]
 *.pyd
 .venv/
+.tools/
 .pytest_cache/
 .ruff_cache/
 .pip-audit-cache/
@@ -11,6 +12,7 @@ build/
 dist/
 release/*.zip
 release/*.exe
+release/*.msix
 release/*.sha256
 *.spec
 *.egg-info/
