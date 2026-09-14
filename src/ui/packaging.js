@@ -2,6 +2,7 @@
 const packText = (ko, en) => AppState.language === 'en' ? en : ko;
 let toolPaths = [];
 let lastToolText = '';
+let manualUpdateCheck = false;
 
 function packModal(id, title, content) {
   const node = document.createElement('div');
@@ -45,6 +46,39 @@ function updateToolFields() {
   if (action === 'split' && !['ZIP', '7Z'].includes(document.getElementById('packFormat').value)) {
     document.getElementById('packFormat').value = 'ZIP';
   }
+}
+
+function handleUpdateCheck(result, manual = false) {
+  const status = document.getElementById('packUpdateStatus');
+  if (!result.success) {
+    if (status) status.textContent = '업데이트 확인 실패 / Check failed';
+    if (manual) alert(`${packText('업데이트 확인 실패', 'Update check failed')}\n${result.error}`);
+    return;
+  }
+  if (!result.update_available) {
+    if (status) status.textContent = packText('현재 최신 버전입니다.', 'Crow Pack is up to date.');
+    if (manual) alert(`Crow Pack v${result.version}\n${packText('현재 최신 버전을 사용하고 있습니다.', 'You are using the latest version.')}`);
+    return;
+  }
+  if (status) status.textContent = `${result.latest_tag} ${packText('사용 가능', 'available')}`;
+  const size = result.asset_size ? ` (${formatBytes(result.asset_size)})` : '';
+  const approved = confirm(
+    `${packText('새 Crow Pack 버전을 사용할 수 있습니다.', 'A new Crow Pack version is available.')}\n\n` +
+    `${result.version} → ${result.latest_tag}${size}\n` +
+    `${packText('GitHub에서 설치 파일을 다운로드하고 SHA-256을 확인한 뒤 업데이트하시겠습니까?', 'Download the installer from GitHub, verify its SHA-256, and update now?')}`
+  );
+  if (!approved) {
+    if (status) status.textContent = packText('업데이트를 나중에 진행합니다.', 'Update postponed.');
+    return;
+  }
+  if (status) status.textContent = packText('업데이트 다운로드 준비 중…', 'Preparing update download…');
+  AppState.pyBridge.downloadAndInstallUpdate(result.latest_tag);
+}
+
+function requestUpdateCheck(manual = false) {
+  if (!AppState.pyBridge) return;
+  manualUpdateCheck = manualUpdateCheck || manual;
+  AppState.pyBridge.checkForUpdatesAsync();
 }
 
 window.validateSecurity = () => {
@@ -118,7 +152,7 @@ document.addEventListener('DOMContentLoaded', () => {
       <div class="settings-action-row"><div><strong>탐색기 우클릭 메뉴</strong><span>압축 및 해제 명령을 표시합니다.</span></div><div class="pack-row"><button class="btn" id="packShellOn">사용</button><button class="btn" id="packShellOff">해제</button></div></div>
     </section>
     <section class="settings-section"><h3>업데이트</h3>
-      <div class="settings-action-row"><div><strong>Crow Pack v1.5.0</strong><label class="plain-check"><input type="checkbox" id="packAutoUpdate"> 시작할 때 확인</label></div><div id="packUpdateButton"></div></div>
+      <div class="settings-action-row"><div><strong>Crow Pack v1.5.1</strong><span>실행할 때 새 GitHub 릴리스를 자동으로 확인합니다.</span><span id="packUpdateStatus" role="status"></span></div><div id="packUpdateButton"></div></div>
     </section>`);
   document.getElementById('packGeneral').append(document.querySelector('#modalInfoApp .settings-panel'));
   document.getElementById('packUpdateButton').append(document.getElementById('btnToolUpdate'));
@@ -163,7 +197,10 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('packCopy').onclick=()=>AppState.pyBridge?.copyText(lastToolText);
   document.getElementById('packDefaults').onclick=()=>AppState.pyBridge?.openDefaultApps();
   for(const [id,enabled] of [['packShellOn',true],['packShellOff',false]])document.getElementById(id).onclick=()=>AppState.pyBridge?.setShellIntegration(enabled,r=>{const x=JSON.parse(r);alert(x.success?'완료 / Done':x.error);});
-  const auto=document.getElementById('packAutoUpdate');auto.checked=loadPreference('autoUpdate','false')==='true';auto.onchange=()=>savePreference('autoUpdate',String(auto.checked));
+  updateButton.onclick=()=>{
+    document.getElementById('packUpdateStatus').textContent=packText('확인 중…','Checking…');
+    requestUpdateCheck(true);
+  };
   document.getElementById('packRun').onclick=()=>{
     if(!toolPaths.length || !AppState.pyBridge)return;
     const action=document.getElementById('packAction').value;
@@ -184,7 +221,21 @@ document.addEventListener('DOMContentLoaded', () => {
       document.getElementById('packResult').textContent=lastToolText;
     });
     AppState.pyBridge.progressEvent.connect((cur,total,name)=>{if(document.getElementById('packRun').disabled)document.getElementById('packResult').textContent=`${cur} / ${total}\n${name}`;});
-    if(auto.checked)AppState.pyBridge.checkForUpdates(raw=>{const result=JSON.parse(raw);if(result.update_available)alert(result.message || '새 버전이 있습니다. / An update is available.');});
+    AppState.pyBridge.updateCheckFinished.connect(raw=>{
+      const manual=manualUpdateCheck;manualUpdateCheck=false;
+      handleUpdateCheck(JSON.parse(raw),manual);
+    });
+    AppState.pyBridge.updateProgress.connect((cur,total)=>{
+      const percent=Math.min(100,Math.round(cur*100/Math.max(1,total)));
+      document.getElementById('packUpdateStatus').textContent=`${packText('다운로드 중','Downloading')} ${percent}%`;
+    });
+    AppState.pyBridge.updateFinished.connect(raw=>{
+      const result=JSON.parse(raw);
+      if(!result.success){document.getElementById('packUpdateStatus').textContent=packText('업데이트 실패','Update failed');alert(`${packText('업데이트 실패','Update failed')}\n${result.error}`);return;}
+      document.getElementById('packUpdateStatus').textContent=packText('설치 프로그램 시작됨','Installer started');
+      alert(result.message);setTimeout(()=>AppState.pyBridge.quitForUpdate(),250);
+    });
+    requestUpdateCheck(false);
     if(window.pendingShellAction)window.handleShellAction(...window.pendingShellAction);
     if(window.pendingNativeDrop){const paths=window.pendingNativeDrop;window.pendingNativeDrop=null;handleDroppedFiles(paths);}
   },100);

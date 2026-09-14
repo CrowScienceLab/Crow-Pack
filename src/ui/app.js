@@ -1,5 +1,5 @@
 /**
- * Crow Pack v1.5.0 - Frontend Interaction Logic
+ * Crow Pack v1.5.1 - Frontend Interaction Logic
  * 칠흑 까마귀 테마, 툴바 컨텍스트 전환, 플로팅 툴팁 엔진 및 드래그앤드롭
  */
 
@@ -1131,7 +1131,7 @@ function initNativeBridge() {
   if (typeof QWebChannel !== 'undefined') {
     new QWebChannel(qt.webChannelTransport, (channel) => {
       AppState.pyBridge = channel.objects.coreBridge;
-      console.log('PySide6 Native Bridge Connected (Crow Pack v1.5.0)!');
+      console.log('PySide6 Native Bridge Connected (Crow Pack v1.5.1)!');
 
       AppState.pyBridge.progressEvent.connect((current, total, file) => {
         updateProgress(current, total, file);

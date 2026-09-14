@@ -1,14 +1,19 @@
 """
 Crow Pack - PySide6 WebChannel Core Bridge
-UI와 파이썬 아카이브 엔진 간의 네이티브 양방향 브릿지 (Crow Pack v1.5.0)
+UI와 파이썬 아카이브 엔진 간의 네이티브 양방향 브릿지 (Crow Pack v1.5.1)
 """
 
+import hashlib
 import json
 import os
+import re
 import shutil
 import subprocess
+import threading
 import urllib.error
+import urllib.parse
 import urllib.request
+from pathlib import Path
 
 from PySide6.QtCore import QBuffer, QByteArray, QIODevice, Qt, Signal, Slot
 from PySide6.QtGui import QImageReader
@@ -29,15 +34,59 @@ class CoreBridge(ToolsBridge):
     _IMAGE_PREVIEW_EXTENSIONS = {".bmp", ".gif", ".jpeg", ".jpg", ".png", ".webp"}
     _MAX_IMAGE_PREVIEW_BYTES = 20 * 1024**2
     _MAX_IMAGE_PREVIEW_PIXELS = 40_000_000
-    APP_VERSION = "1.5.0"
-    RELEASE_TAG = "v1.5.0"
+    APP_VERSION = "1.5.1"
+    RELEASE_TAG = "v1.5.1"
     LATEST_RELEASE_API = "https://api.github.com/repos/CrowScienceLab/Crow-Pack/releases/latest"
+    RELEASE_DOWNLOAD_PREFIX = "/CrowScienceLab/Crow-Pack/releases/download/"
+    MAX_INSTALLER_BYTES = 600 * 1024**2
     
     progressEvent = Signal(int, int, str)
+    updateCheckFinished = Signal(str)
+    updateProgress = Signal(int, int, str)
+    updateFinished = Signal(str)
 
     def __init__(self, parent_widget=None):
         super().__init__()
         self.parent_widget = parent_widget
+        self._update_check_job = None
+        self._update_job = None
+
+    @staticmethod
+    def _version_tuple(version: str) -> tuple[int, int, int, int]:
+        match = re.fullmatch(r"v?(\d+)\.(\d+)\.(\d+)(?:\.(\d+))?", version.strip(), re.IGNORECASE)
+        if not match:
+            raise ValueError(f"지원하지 않는 버전 형식입니다: {version}")
+        return tuple(int(value or 0) for value in match.groups())
+
+    @classmethod
+    def _release_installer(cls, release: dict) -> dict:
+        latest_tag = str(release.get("tag_name", "")).strip()
+        cls._version_tuple(latest_tag)
+        expected_name = f"CrowPack-{latest_tag}-Setup-x64.exe"
+        for asset in release.get("assets", []):
+            if str(asset.get("name", "")).casefold() != expected_name.casefold():
+                continue
+            url = str(asset.get("browser_download_url", ""))
+            parsed = urllib.parse.urlparse(url)
+            if (
+                parsed.scheme != "https"
+                or parsed.hostname != "github.com"
+                or not parsed.path.casefold().startswith(cls.RELEASE_DOWNLOAD_PREFIX.casefold())
+            ):
+                raise ValueError("허용되지 않은 업데이트 다운로드 주소입니다.")
+            digest = str(asset.get("digest", ""))
+            if not re.fullmatch(r"sha256:[0-9a-fA-F]{64}", digest):
+                raise ValueError("업데이트 설치 파일의 SHA-256 정보가 없습니다.")
+            size = int(asset.get("size", 0))
+            if size <= 0 or size > cls.MAX_INSTALLER_BYTES:
+                raise ValueError("업데이트 설치 파일의 크기가 허용 범위를 벗어났습니다.")
+            return {
+                "asset_name": expected_name,
+                "download_url": url,
+                "sha256": digest.split(":", 1)[1].lower(),
+                "asset_size": size,
+            }
+        raise ValueError(f"릴리스에서 {expected_name} 설치 파일을 찾을 수 없습니다.")
 
     @Slot(result=str)
     def selectArchiveFile(self) -> str:
@@ -525,7 +574,8 @@ class CoreBridge(ToolsBridge):
             latest_tag = str(release.get("tag_name", "")).strip()
             if not latest_tag:
                 raise ValueError("최신 릴리스 태그가 비어 있습니다.")
-            update_available = latest_tag.casefold() != self.RELEASE_TAG.casefold()
+            update_available = self._version_tuple(latest_tag) > self._version_tuple(self.RELEASE_TAG)
+            installer = self._release_installer(release) if update_available else {}
             message = (
                 f"새 릴리스 {latest_tag}을 사용할 수 있습니다."
                 if update_available
@@ -538,6 +588,7 @@ class CoreBridge(ToolsBridge):
                 "update_available": update_available,
                 "release_url": release.get("html_url", ""),
                 "message": message,
+                **installer,
             }, ensure_ascii=False)
         except (urllib.error.URLError, TimeoutError, ValueError, OSError) as e:
             return json.dumps({
@@ -546,6 +597,88 @@ class CoreBridge(ToolsBridge):
                 "update_available": False,
                 "error": f"GitHub 릴리스를 확인할 수 없습니다: {e}",
             }, ensure_ascii=False)
+
+    @Slot()
+    def checkForUpdatesAsync(self):
+        """Check for an update without blocking the application window."""
+        if self._update_check_job and self._update_check_job.is_alive():
+            return
+
+        def work():
+            self.updateCheckFinished.emit(self.checkForUpdates())
+
+        self._update_check_job = threading.Thread(target=work, daemon=True)
+        self._update_check_job.start()
+
+    @Slot(str)
+    def downloadAndInstallUpdate(self, latest_tag: str):
+        """Revalidate, download, hash-check, and launch the approved GitHub installer."""
+        if self._update_job and self._update_job.is_alive():
+            self.updateFinished.emit(json.dumps({"success": False, "error": "업데이트가 이미 진행 중입니다."}, ensure_ascii=False))
+            return
+
+        def work():
+            part_path = None
+            try:
+                if self._version_tuple(latest_tag) <= self._version_tuple(self.RELEASE_TAG):
+                    raise ValueError("현재 버전보다 새로운 업데이트가 아닙니다.")
+                request = urllib.request.Request(  # noqa: S310 - fixed HTTPS GitHub API endpoint
+                    self.LATEST_RELEASE_API,
+                    headers={"Accept": "application/vnd.github+json", "User-Agent": f"Crow-Pack/{self.APP_VERSION}"},
+                )
+                with urllib.request.urlopen(request, timeout=12) as response:  # noqa: S310
+                    release = json.load(response)
+                if str(release.get("tag_name", "")).casefold() != latest_tag.casefold():
+                    raise ValueError("최신 릴리스가 변경되었습니다. 다시 확인해 주세요.")
+                installer = self._release_installer(release)
+                update_dir = Path(os.environ.get("LOCALAPPDATA", Path.home())) / "Crow Pack" / "Updates"
+                update_dir.mkdir(parents=True, exist_ok=True)
+                final_path = update_dir / installer["asset_name"]
+                part_path = final_path.with_suffix(final_path.suffix + ".part")
+                digest = hashlib.sha256()
+                received = 0
+                download = urllib.request.Request(  # noqa: S310 - URL allowlisted by _release_installer
+                    installer["download_url"], headers={"User-Agent": f"Crow-Pack/{self.APP_VERSION}"}
+                )
+                with urllib.request.urlopen(download, timeout=30) as response, part_path.open("wb") as target:  # noqa: S310
+                    while chunk := response.read(1024 * 1024):
+                        received += len(chunk)
+                        if received > self.MAX_INSTALLER_BYTES:
+                            raise ValueError("업데이트 설치 파일이 허용 크기를 초과했습니다.")
+                        target.write(chunk)
+                        digest.update(chunk)
+                        self.updateProgress.emit(received, installer["asset_size"], installer["asset_name"])
+                if received != installer["asset_size"]:
+                    raise ValueError("다운로드 크기가 GitHub 릴리스 정보와 일치하지 않습니다.")
+                if digest.hexdigest().lower() != installer["sha256"]:
+                    raise ValueError("다운로드한 설치 파일의 SHA-256 검증에 실패했습니다.")
+                os.replace(part_path, final_path)
+                part_path = None
+                subprocess.Popen([
+                    str(final_path), "/SILENT", "/SUPPRESSMSGBOXES", "/NORESTART",
+                    "/CLOSEAPPLICATIONS", "/RESTARTAPPLICATIONS",
+                ], close_fds=True)
+                self.updateFinished.emit(json.dumps({
+                    "success": True,
+                    "version": latest_tag,
+                    "installer_path": str(final_path),
+                    "message": "업데이트 설치를 시작합니다. Crow Pack이 잠시 후 종료됩니다.",
+                }, ensure_ascii=False))
+            except (urllib.error.URLError, TimeoutError, ValueError, OSError, subprocess.SubprocessError) as exc:
+                if part_path:
+                    try:
+                        part_path.unlink(missing_ok=True)
+                    except OSError:
+                        pass
+                self.updateFinished.emit(json.dumps({"success": False, "error": str(exc)}, ensure_ascii=False))
+
+        self._update_job = threading.Thread(target=work, daemon=False)
+        self._update_job.start()
+
+    @Slot()
+    def quitForUpdate(self):
+        from PySide6.QtWidgets import QApplication
+        QApplication.quit()
 
     @Slot(result=str)
     def registerFileAssociations(self) -> str:

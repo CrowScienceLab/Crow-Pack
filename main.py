@@ -1,6 +1,6 @@
 """
 Crow Pack - Main Application Entry Point
-Crow Pack v1.5.0 - 압축과 풀기 앱 (제작: Crow Science Lab)
+Crow Pack v1.5.1 - 압축과 풀기 앱 (제작: Crow Science Lab)
 """
 
 import json
@@ -79,7 +79,8 @@ class DropAwareWebEngineView(QWebEngineView):
 
 class CrowPackWindow(QMainWindow):
     def closeEvent(self, event):
-        if self.bridge._job and self.bridge._job.is_alive():
+        if ((self.bridge._job and self.bridge._job.is_alive())
+                or (self.bridge._update_job and self.bridge._update_job.is_alive())):
             event.ignore()
             return
         if self.bridge._drag_manager:
@@ -89,7 +90,7 @@ class CrowPackWindow(QMainWindow):
     def __init__(self, initial_files=None):
         super().__init__()
         # 창 상단 타이틀
-        self.setWindowTitle("Crow Pack v1.5.0 - 압축과 풀기 앱")
+        self.setWindowTitle("Crow Pack v1.5.1 - 압축과 풀기 앱")
         self.setWindowIcon(QIcon(bundled_path("assets", "crow_pack.ico")))
         
         # 쾌적하고 균형 잡힌 창 크기 (780 x 520)

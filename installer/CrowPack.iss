@@ -1,6 +1,6 @@
 #define MyAppName "Crow Pack"
-#define MyAppVersion "1.5.0"
-#define MyAppDisplayVersion "v1.5.0"
+#define MyAppVersion "1.5.1"
+#define MyAppDisplayVersion "v1.5.1"
 #define MyAppPublisher "Crow Science Lab"
 #define MyAppExeName "CrowPack.exe"
 
@@ -23,7 +23,7 @@ PrivilegesRequired=lowest
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 OutputDir=..\release
-OutputBaseFilename=CrowPack-v1.5.0-Setup-x64
+OutputBaseFilename=CrowPack-v1.5.1-Setup-x64
 Compression=lzma2/ultra64
 SolidCompression=yes
 WizardStyle=modern

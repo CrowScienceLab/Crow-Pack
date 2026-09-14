@@ -1,5 +1,7 @@
 """Bridge-level preview and status tests."""
 
+import hashlib
+import io
 import json
 import os
 import shutil
@@ -43,14 +45,70 @@ class TestBridgeFeatures(unittest.TestCase):
         response.__enter__.return_value = response
         response.__exit__.return_value = False
         response.read.return_value = json.dumps({
-            "tag_name": "v1.5.0",
-            "html_url": "https://github.com/CrowScienceLab/Crow-Pack/releases/tag/v1.5.0",
+            "tag_name": "v1.5.1",
+            "html_url": "https://github.com/CrowScienceLab/Crow-Pack/releases/tag/v1.5.1",
         }).encode("utf-8")
         with patch("src.bridge.core_bridge.urllib.request.urlopen", return_value=response):
             result = json.loads(CoreBridge().checkForUpdates())
         self.assertTrue(result["success"])
-        self.assertEqual(result["version"], "1.5.0")
+        self.assertEqual(result["version"], "1.5.1")
         self.assertFalse(result["update_available"])
+
+    def test_update_status_exposes_verified_newer_installer(self):
+        response = MagicMock()
+        response.__enter__.return_value = response
+        response.__exit__.return_value = False
+        response.read.return_value = json.dumps({
+            "tag_name": "v1.5.2",
+            "html_url": "https://github.com/CrowScienceLab/Crow-Pack/releases/tag/v1.5.2",
+            "assets": [{
+                "name": "CrowPack-v1.5.2-Setup-x64.exe",
+                "browser_download_url": "https://github.com/CrowScienceLab/Crow-Pack/releases/download/v1.5.2/CrowPack-v1.5.2-Setup-x64.exe",
+                "digest": "sha256:" + "a" * 64,
+                "size": 123456,
+            }],
+        }).encode("utf-8")
+        with patch("src.bridge.core_bridge.urllib.request.urlopen", return_value=response):
+            result = json.loads(CoreBridge().checkForUpdates())
+        self.assertTrue(result["update_available"])
+        self.assertEqual(result["latest_tag"], "v1.5.2")
+        self.assertEqual(result["sha256"], "a" * 64)
+
+    def test_older_release_is_not_an_update(self):
+        response = MagicMock()
+        response.__enter__.return_value = response
+        response.__exit__.return_value = False
+        response.read.return_value = json.dumps({"tag_name": "v1.5.0"}).encode("utf-8")
+        with patch("src.bridge.core_bridge.urllib.request.urlopen", return_value=response):
+            result = json.loads(CoreBridge().checkForUpdates())
+        self.assertFalse(result["update_available"])
+
+    def test_approved_update_download_is_hash_checked_before_launch(self):
+        payload = b"Crow Pack signed installer fixture"
+        release = {
+            "tag_name": "v1.5.2",
+            "assets": [{
+                "name": "CrowPack-v1.5.2-Setup-x64.exe",
+                "browser_download_url": "https://github.com/CrowScienceLab/Crow-Pack/releases/download/v1.5.2/CrowPack-v1.5.2-Setup-x64.exe",
+                "digest": "sha256:" + hashlib.sha256(payload).hexdigest(),
+                "size": len(payload),
+            }],
+        }
+        api_response = io.BytesIO(json.dumps(release).encode("utf-8"))
+        installer_response = io.BytesIO(payload)
+        bridge = CoreBridge()
+        with (
+            patch.dict(os.environ, {"LOCALAPPDATA": self.workspace}),
+            patch("src.bridge.core_bridge.urllib.request.urlopen", side_effect=[api_response, installer_response]),
+            patch("src.bridge.core_bridge.subprocess.Popen") as launch,
+        ):
+            bridge.downloadAndInstallUpdate("v1.5.2")
+            bridge._update_job.join(timeout=5)
+        self.assertFalse(bridge._update_job.is_alive())
+        installer = os.path.join(self.workspace, "Crow Pack", "Updates", "CrowPack-v1.5.2-Setup-x64.exe")
+        with open(installer, "rb") as stream:
+            self.assertEqual(stream.read(), payload)
+        launch.assert_called_once()
 
     def test_update_status_reports_network_error(self):
         with patch("src.bridge.core_bridge.urllib.request.urlopen", side_effect=URLError("offline")):

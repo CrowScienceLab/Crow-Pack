@@ -1,19 +1,20 @@
-"""Produce local review artifacts only. Does not upload or change Git history."""
+"""Produce the versioned installer, portable, source, and checksum release artifacts."""
 import hashlib
-import shutil
 import subprocess
 import zipfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-OUTPUT = ROOT.parent / 'outputs' / 'Crow-Pack-v1.5.0'
+VERSION = '1.5.1'
+OUTPUT = ROOT / 'release'
 
 
 def main():
     OUTPUT.mkdir(parents=True, exist_ok=True)
-    installer = ROOT / 'release/CrowPack-v1.5.0-Setup-x64.exe'
-    shutil.copy2(installer, OUTPUT / installer.name)
-    portable = OUTPUT / 'CrowPack-v1.5.0-Portable-x64.zip'
+    installer = OUTPUT / f'CrowPack-v{VERSION}-Setup-x64.exe'
+    if not installer.is_file():
+        raise FileNotFoundError(installer)
+    portable = OUTPUT / f'CrowPack-v{VERSION}-Portable-x64.zip'
     with zipfile.ZipFile(portable, 'w', zipfile.ZIP_DEFLATED, compresslevel=6) as archive:
         for path in sorted((ROOT / 'dist/CrowPack').rglob('*')):
             if path.is_file():
@@ -31,14 +32,13 @@ def main():
         ],
         cwd=ROOT,
     ).decode('utf-8').split('\0')
-    with zipfile.ZipFile(OUTPUT / 'CrowPack-v1.5.0-Source.zip', 'w', zipfile.ZIP_DEFLATED) as archive:
+    with zipfile.ZipFile(OUTPUT / f'CrowPack-v{VERSION}-Source.zip', 'w', zipfile.ZIP_DEFLATED) as archive:
         for name in sorted(set(files)):
             if name and name != 'release/SHA256SUMS.txt' and (ROOT / name).is_file():
                 archive.write(ROOT / name, 'Crow-Pack/' + name)
-    shutil.copy2(ROOT / 'docs/V1.5-VALIDATION.md', OUTPUT / 'VALIDATION.md')
     rows = []
-    for path in sorted(OUTPUT.iterdir()):
-        if path.suffix in {'.exe', '.zip'}:
+    for path in sorted(OUTPUT.glob(f'CrowPack-v{VERSION}-*')):
+        if path.suffix.lower() in {'.exe', '.zip'}:
             with path.open('rb') as source:
                 digest = hashlib.file_digest(source, 'sha256').hexdigest()
             rows.append(f'{digest}  {path.name}\n')
