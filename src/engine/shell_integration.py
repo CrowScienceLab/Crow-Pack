@@ -27,7 +27,7 @@ CLASSES = r"Software\Classes"
 COMMANDS = [
     ("zip", "ZIP으로 압축"),
     ("7z", "7Z로 압축"),
-    ("private", "개인정보 보호 압축"),
+    ("private", "파일명까지 암호화"),
     ("compress", "Crow Pack으로 압축"),
 ]
 ARCHIVE_COMMANDS = [
@@ -166,10 +166,22 @@ def unregister():
 def association_status():
     # AssocQueryStringW returns the effective friendly application name.
     query = ctypes.windll.shlwapi.AssocQueryStringW
+    query.argtypes = [ctypes.c_uint32, ctypes.c_uint32, ctypes.c_wchar_p, ctypes.c_wchar_p,
+                      ctypes.c_wchar_p, ctypes.POINTER(ctypes.c_ulong)]
+    query.restype = ctypes.c_long
     rows = []
     for ext in EXTENSIONS:
         buf = ctypes.create_unicode_buffer(1024)
         size = ctypes.c_ulong(len(buf))
         result = query(0, 4, ext, None, buf, ctypes.byref(size))
-        rows.append({"extension": ext, "handler": buf.value if result == 0 else ""})
+        handler = buf.value if result == 0 else ""
+        # ASSOCSTR_EXECUTABLE identifies the actual handler, not any assigned app.
+        executable = ctypes.create_unicode_buffer(32768)
+        executable_size = ctypes.c_ulong(len(executable))
+        executable_result = query(0, 2, ext, None, executable, ctypes.byref(executable_size))
+        is_crowpack = (
+            (executable_result == 0 and Path(executable.value).name.casefold() == "crowpack.exe")
+            or handler.replace(" ", "").casefold() == "crowpack"
+        )
+        rows.append({"extension": ext, "handler": handler, "is_crowpack": is_crowpack})
     return rows

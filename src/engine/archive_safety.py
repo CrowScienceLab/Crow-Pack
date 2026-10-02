@@ -52,6 +52,8 @@ def normalize_member_name(name: str, policy: ExtractionPolicy = DEFAULT_POLICY) 
             continue
         if part == "..":
             raise ArchiveSecurityError(f"상위 경로 이동 항목을 차단했습니다: {name}")
+        if any(char in part for char in ':<>"|?*') or any(ord(char) < 32 for char in part):
+            raise ArchiveSecurityError(f"Windows에서 안전하지 않은 파일명을 차단했습니다: {name}")
         if part.rstrip(" .") != part:
             raise ArchiveSecurityError(f"Windows에서 모호한 경로를 차단했습니다: {name}")
         if part.split(".", 1)[0].upper() in _WINDOWS_RESERVED_NAMES:

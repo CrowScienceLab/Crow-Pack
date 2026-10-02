@@ -1,6 +1,6 @@
 """
 Crow Pack - PySide6 WebChannel Core Bridge
-UI와 파이썬 아카이브 엔진 간의 네이티브 양방향 브릿지 (Crow Pack v1.5.2)
+UI와 파이썬 아카이브 엔진 간의 네이티브 양방향 브릿지 (Crow Pack v1.5.3)
 """
 
 import hashlib
@@ -34,8 +34,8 @@ class CoreBridge(ToolsBridge):
     _IMAGE_PREVIEW_EXTENSIONS = {".bmp", ".gif", ".jpeg", ".jpg", ".png", ".webp"}
     _MAX_IMAGE_PREVIEW_BYTES = 20 * 1024**2
     _MAX_IMAGE_PREVIEW_PIXELS = 40_000_000
-    APP_VERSION = "1.5.2"
-    RELEASE_TAG = "v1.5.2"
+    APP_VERSION = "1.5.3"
+    RELEASE_TAG = "v1.5.3"
     STORE_ID = "9NPBKL0XTKQ7"
     STORE_URL = f"ms-windows-store://pdp/?productid={STORE_ID}"
     LATEST_RELEASE_API = "https://api.github.com/repos/CrowScienceLab/Crow-Pack/releases/latest"

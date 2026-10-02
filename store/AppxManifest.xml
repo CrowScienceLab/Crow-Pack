@@ -2,10 +2,11 @@
 <Package
   xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10"
   xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10"
+  xmlns:uap3="http://schemas.microsoft.com/appx/manifest/uap/windows10/3"
   xmlns:uap10="http://schemas.microsoft.com/appx/manifest/uap/windows10/10"
   xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities"
-  IgnorableNamespaces="uap uap10 rescap">
-  <Identity Name="170231F2.CrowPack" Publisher="CN=2953C017-B9C7-4852-BD5D-ABFF600E3840" Version="1.5.2.0" ProcessorArchitecture="x64" />
+  IgnorableNamespaces="uap uap3 uap10 rescap">
+  <Identity Name="170231F2.CrowPack" Publisher="CN=2953C017-B9C7-4852-BD5D-ABFF600E3840" Version="1.5.3.0" ProcessorArchitecture="x64" />
   <Properties>
     <DisplayName>CrowPack</DisplayName>
     <PublisherDisplayName>까마구</PublisherDisplayName>
@@ -29,22 +30,26 @@
       </uap:VisualElements>
       <Extensions>
         <uap:Extension Category="windows.fileTypeAssociation">
-          <uap:FileTypeAssociation Name="crowpackarchives">
+          <uap3:FileTypeAssociation Name="crowpackarchives" Parameters="&quot;%1&quot;" MultiSelectModel="Single">
+            <uap:DisplayName>Crow Pack archive</uap:DisplayName>
             <uap:SupportedFileTypes>
               <uap:FileType>.zip</uap:FileType>
               <uap:FileType>.7z</uap:FileType>
               <uap:FileType>.rar</uap:FileType>
               <uap:FileType>.tar</uap:FileType>
               <uap:FileType>.gz</uap:FileType>
+              <uap:FileType>.tgz</uap:FileType>
               <uap:FileType>.bz2</uap:FileType>
+              <uap:FileType>.tbz2</uap:FileType>
               <uap:FileType>.xz</uap:FileType>
+              <uap:FileType>.txz</uap:FileType>
               <uap:FileType>.cbz</uap:FileType>
               <uap:FileType>.alz</uap:FileType>
               <uap:FileType>.egg</uap:FileType>
               <uap:FileType>.cab</uap:FileType>
               <uap:FileType>.iso</uap:FileType>
             </uap:SupportedFileTypes>
-          </uap:FileTypeAssociation>
+          </uap3:FileTypeAssociation>
         </uap:Extension>
       </Extensions>
     </Application>

@@ -1,5 +1,5 @@
 /**
- * Crow Pack v1.5.2 - Frontend Interaction Logic
+ * Crow Pack v1.5.3 - Frontend Interaction Logic
  * 칠흑 까마귀 테마, 툴바 컨텍스트 전환, 플로팅 툴팁 엔진 및 드래그앤드롭
  */
 
@@ -275,6 +275,7 @@ function applyLanguage(language) {
     if (translated !== undefined) element.innerHTML = translated;
   });
   applyStaticUiTranslations(AppState.language);
+  if (window.applyPackLanguage) window.applyPackLanguage();
   const selector = document.getElementById('selAppLanguage');
   if (selector) selector.value = AppState.language;
   const tooltipText = AppState.language === 'en'
@@ -1131,7 +1132,7 @@ function initNativeBridge() {
   if (typeof QWebChannel !== 'undefined') {
     new QWebChannel(qt.webChannelTransport, (channel) => {
       AppState.pyBridge = channel.objects.coreBridge;
-      console.log('PySide6 Native Bridge Connected (Crow Pack v1.5.2)!');
+      console.log('PySide6 Native Bridge Connected (Crow Pack v1.5.3)!');
 
       AppState.pyBridge.progressEvent.connect((current, total, file) => {
         updateProgress(current, total, file);

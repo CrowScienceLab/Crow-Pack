@@ -1,7 +1,7 @@
 @echo off
 chcp 65001 > nul
 echo ===================================================
-echo   Crow Pack v1.5.2 - EXE 빌드 스크립트
+echo   Crow Pack v1.5.3 - EXE 빌드 스크립트
 echo ===================================================
 echo.
 if defined CROW_PYTHON if exist "%CROW_PYTHON%" goto :python_ready

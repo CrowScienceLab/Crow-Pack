@@ -63,6 +63,16 @@ class PackagingTests(unittest.TestCase):
         with self.assertRaises(FileExistsError):
             create_cbz(images, output)
 
+    def test_7z_extract_reports_only_extracted_files(self):
+        archive = self.archive('7Z')
+        destination = self.root / 'existing'
+        destination.mkdir()
+        unrelated = destination / 'unrelated.txt'
+        unrelated.write_text('keep me', encoding='utf-8')
+        _, files = AM.extract_archive(archive, str(destination), 'current')
+        self.assertEqual([Path(path).name for path in files], [self.source.name])
+        self.assertEqual(unrelated.read_text(encoding='utf-8'), 'keep me')
+
     def test_conversion_roundtrips(self):
         for source_fmt, target_fmt in [("ZIP", "7Z"), ("7Z", "ZIP"), ("TAR.GZ", "ZIP")]:
             with self.subTest(source_fmt=source_fmt):

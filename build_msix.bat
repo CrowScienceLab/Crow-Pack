@@ -16,5 +16,5 @@ if not defined CROW_PYTHON (
 :python_ready
 if not exist "dist\CrowPack\CrowPack.exe" call build_exe.bat || exit /b 1
 "%CROW_PYTHON%" tools\build_msix.py %* || exit /b 1
-echo Microsoft Store 패키지: release\CrowPack-v1.5.2-Store-x64.msix
+echo Microsoft Store 패키지: release\CrowPack-v1.5.3-Store-x64.msix
 endlocal

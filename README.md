@@ -1,8 +1,11 @@
-# Crow Pack v1.5.2
+# Crow Pack v1.5.3
 
 ## v1.5 주요 기능
 
-- 개인정보 보호 7Z: 내용·파일명·폴더명 암호화, 비밀번호 확인·표시·생성·복사.
+- PDF 용량 조절: 무손실 정리부터 이미지 재압축까지 다섯 단계로 목적에 맞게 최적화.
+- CBZ 만들기: 이미지들을 자연 정렬하여 만화·그림 문서로 묶고 미리보기.
+- ISO 읽기/쓰기: 데이터 ISO의 파일을 탐색·복사하고 새 ISO 이미지를 생성.
+- 파일명까지 암호화(7Z): 내용·파일명·폴더명 암호화, 비밀번호 확인·표시·생성·복사.
 - Explorer로 선택 항목 드래그 추출, 여러 압축파일 일괄 해제.
 - ZIP/7Z/TAR 계열 포맷 변환, 여러 파일 일괄 해제와 분할 압축.
 - 자연 정렬 CBZ 이미지 문서 생성 및 탐색·선택 해제·미리보기.
@@ -80,7 +83,7 @@ py -3.12 -m venv .venv
 압축 생성·해제와 ISO 파일 복사를 확인한 뒤 배포하세요.
 
 Inno Setup 6을 설치한 뒤 `build_installer.bat`를 실행하면
-`release\CrowPack-v1.5.2-Setup-x64.exe` 설치본이 만들어집니다. 설치는 현재 사용자 영역에
+`release\CrowPack-v1.5.3-Setup-x64.exe` 설치본이 만들어집니다. 설치는 현재 사용자 영역에
 진행되므로 관리자 권한이 필요하지 않으며 시작 메뉴와 선택형 바탕 화면 바로가기를 제공합니다.
 
 Microsoft Store용 MSIX는 Windows SDK의 `makeappx.exe`가 있는 환경에서 다음 명령으로 만듭니다.
@@ -89,7 +92,7 @@ Microsoft Store용 MSIX는 Windows SDK의 `makeappx.exe`가 있는 환경에서 
 build_msix.bat --makeappx "C:\path\to\x64\makeappx.exe"
 ```
 
-결과는 `release\CrowPack-v1.5.2-Store-x64.msix`이며 Store ID는 `9NPBKL0XTKQ7`입니다.
+결과는 `release\CrowPack-v1.5.3-Store-x64.msix`이며 Store ID는 `9NPBKL0XTKQ7`입니다.
 
 ## 보안 동작
 

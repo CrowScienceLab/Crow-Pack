@@ -1222,28 +1222,37 @@ body[data-theme]:not([data-theme="dark"]) .info-help-copy strong {
 /* v1.5 review redesign: compact home, five visible tools, quiet settings. */
 .crow-navbar { --navbar-height: 58px; height: 58px; min-height: 58px; padding-block: 0; }
 #navGroupHome { overflow: visible; padding-block: 0; }
-#navGroupHome .tool-icon-btn { width: 38px; height: 38px; min-width: 38px; min-height: 38px; padding: 0; display: flex; }
-#navGroupHome .tool-btn-label { display: none; }
+#navGroupHome .tool-icon-btn { width: auto; height: 58px; min-width: 64px; min-height: 58px; padding: 6px 10px; display: flex; flex-direction: column; gap: 5px; background: transparent; border-color: transparent; border-radius: 8px; }
+#navGroupHome .tool-btn-label { display: block; font-size: 10px; line-height: 14px; }
+.crow-navbar { height: 76px; min-height: 76px; }
+#navGroupHome { margin-left: auto; }
+.tool-icon-btn svg { stroke-width: 1.75; }
+.tool-icon-btn:hover, .tool-icon-btn:hover svg { transform: none; }
+.tool-icon-btn:focus-visible, .pack-tool-tab:focus-visible, .btn:focus-visible { outline: 2px solid var(--accent-indigo); outline-offset: 3px; }
 .brand-crow-logo { width: 40px; height: 40px; }
 .crow-brand-image { width: 100%; height: 100%; display: block; object-fit: contain; }
 #viewHome { padding: 14px 20px; gap: 10px; }
 .home-drop-zone { padding: 20px 22px; }
-.action-card { padding: 16px; gap: 7px; }
+.action-card { padding: 20px; gap: 10px; border-radius: 12px; box-shadow: none; }
+.action-card:hover { transform: none; box-shadow: none; }
+.action-card-icon { padding: 0; border-radius: 12px; border-color: var(--border-subtle); }
+.action-card-icon svg { width: 30px; height: 30px; stroke-width: 1.6; }
+.home-drop-zone { border-radius: 16px; }
 .action-card-icon { width: 44px; height: 44px; }
 .home-drop-hint { margin-top: 9px; }
 .format-badges-row { margin-top: 8px; }
 
 .pack-modal { width: min(700px, 96vw); }
-#packTools .modal-body { gap: 9px; overflow: hidden; max-height: none; padding-block: 12px; }
+#packTools .modal-body { gap: 10px; overflow-y: auto; max-height: none; padding-block: 16px; }
 .pack-tool-tabs { display: grid; grid-template-columns: repeat(5, 1fr); gap: 7px; }
-.pack-tool-tab { min-width: 0; height: 78px; padding: 9px 5px; border: 1px solid var(--border-subtle); border-radius: 9px; background: var(--bg-main); color: var(--text-secondary); cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 7px; font: 700 10px/1.2 var(--font-family); }
+.pack-tool-tab { min-width: 0; min-height: 86px; padding: 10px 6px; border: 1px solid var(--border-subtle); border-radius: 10px; background: var(--bg-main); color: var(--text-secondary); cursor: pointer; display: grid; grid-template-rows: 30px minmax(28px, auto); justify-items: center; align-items: center; gap: 6px; font: 600 11px/1.35 var(--font-family); text-align: center; word-break: keep-all; }
 .pack-tool-tab:hover { background: var(--bg-card-hover); color: var(--text-primary); }
-.pack-tool-tab.active { color: var(--text-primary); border-color: var(--accent-cyan); background: var(--accent-soft); box-shadow: inset 0 0 0 1px var(--accent-cyan); }
+.pack-tool-tab.active { color: var(--text-primary); border-color: var(--accent-indigo); background: var(--accent-soft); box-shadow: none; }
 .pack-tool-icon { width: 30px; height: 30px; display: grid; place-items: center; }
-.pack-tool-icon svg { width: 28px; height: 28px; display: block; }
-.pack-tool-intro { min-height: 50px; padding: 9px 11px; border-left: 3px solid var(--accent-cyan); border-radius: 5px; background: var(--bg-main); display: flex; flex-direction: column; justify-content: center; gap: 3px; }
+.pack-tool-icon svg { width: 28px; height: 28px; display: block; stroke-width: 1.75; }
+.pack-tool-intro { min-height: 50px; padding: 9px 11px; border-left: 3px solid var(--accent-indigo); border-radius: 5px; background: var(--bg-main); display: flex; flex-direction: column; justify-content: center; gap: 3px; }
 .pack-tool-intro strong { font-size: 12px; color: var(--text-primary); }
-.pack-tool-intro span { font-size: 10px; line-height: 1.4; color: var(--text-muted); }
+.pack-tool-intro span { font-size: 11px; line-height: 1.5; color: var(--text-secondary); }
 .pack-options-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 12px; align-items: end; }
 .pack-check { min-height: 30px; display: flex !important; grid-template-columns: auto 1fr; align-items: center; }
 #packTools #packPaths { min-height: 38px; max-height: 54px; }
@@ -1252,8 +1261,8 @@ body[data-theme]:not([data-theme="dark"]) .info-help-copy strong {
 #packTools #packResult { max-height: 55px; }
 #packTools #packRun { align-self: flex-end; min-width: 110px; justify-content: center; }
 
-#packSettings .modal-body { gap: 10px; overflow: hidden; max-height: none; padding-block: 12px; }
-.settings-section { border: 1px solid var(--border-subtle); border-radius: 8px; background: var(--bg-main); overflow: hidden; }
+#packSettings .modal-body { gap: 8px; overflow-y: auto; max-height: none; padding-block: 10px; }
+.settings-section { flex-shrink: 0; border: 1px solid var(--border-subtle); border-radius: 8px; background: var(--bg-main); overflow: hidden; }
 .settings-section > h3 { margin: 0; padding: 8px 11px; border-bottom: 1px solid var(--border-subtle); color: var(--text-primary); background: var(--bg-card); font-size: 11px; }
 #packSettings .settings-panel { padding: 9px 11px; border: 0; border-radius: 0; background: transparent; gap: 8px; }
 #packSettings .settings-title { display: none; }
@@ -1261,19 +1270,20 @@ body[data-theme]:not([data-theme="dark"]) .info-help-copy strong {
 #packSettings .theme-choice-group { grid-template-columns: repeat(3, 1fr); }
 #packSettings .theme-choice { font-size: 10px; padding: 6px 8px; }
 #packSettings .theme-choice { height: 34px; position: relative; }
+#packSettings label.theme-choice { display: flex; flex-direction: row; align-items: center; gap: 8px; height: auto; min-height: 34px; line-height: 1.4; white-space: nowrap; }
 #packSettings .theme-choice input { position: absolute; opacity: 0; pointer-events: none; }
 #packSettings .theme-swatch { flex: 0 0 17px; }
 .settings-action-row { min-height: 52px; padding: 8px 11px; display: flex; align-items: center; justify-content: space-between; gap: 12px; border-top: 1px solid var(--border-subtle); }
 .settings-action-row:first-of-type { border-top: 0; }
 .settings-action-row > div:first-child { min-width: 0; display: flex; flex-direction: column; gap: 3px; }
 .settings-action-row strong { font-size: 11px; color: var(--text-primary); }
-.settings-action-row span, .plain-check { font-size: 10px; color: var(--text-muted); }
+.settings-action-row span, .plain-check { font-size: 11px; line-height: 1.5; color: var(--text-secondary); }
 .pack-modal label.plain-check { display: flex; flex-direction: row; align-items: center; gap: 6px; }
 #packSettings .tool-icon-btn, #packSettings .labeled-tool-btn { width: auto; min-width: 0; min-height: 0; height: auto; display: flex; padding: 6px 12px; }
 
 @media (max-width: 720px) {
   .brand-title-wrap { display: none; }
   .nav-brand { padding-right: 5px; }
-  .pack-tool-tab { height: 72px; font-size: 9px; }
-  .pack-options-grid { grid-template-columns: 1fr; }
+  .pack-tool-tab { min-height: 82px; font-size: 10px; }
+  .pack-options-grid { grid-template-columns: 1fr 1fr; }
 }

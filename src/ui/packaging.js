@@ -4,6 +4,40 @@ let toolPaths = [];
 let lastToolText = '';
 let manualUpdateCheck = false;
 
+window.applyPackLanguage = () => {
+  const text = {
+    '#packTools .modal-title': ['도구', 'Tools'],
+    '#packSettings .modal-title': ['설정', 'Settings'],
+    '#packSelect': ['파일 선택', 'Select files'], '#packFolder': ['폴더 추가', 'Add folder'],
+    '#packClear': ['비우기', 'Clear'], '#packRun': ['실행', 'Run'], '#packCopy': ['결과 복사', 'Copy result'],
+    '#packDefaults': ['연결 설정', 'Default apps'], '#packShellOn': ['사용', 'Enable'],
+    '#packShellOff': ['해제', 'Disable'], '#btnToolUpdate': ['업데이트 확인', 'Check for updates'],
+  };
+  for (const [selector, values] of Object.entries(text)) {
+    const node = document.querySelector(selector);
+    if (node) node.textContent = packText(...values);
+  }
+  const labels = {
+    packFormat: ['출력 형식', 'Output format'], packPassword: ['원본 비밀번호', 'Source password'],
+    packOutputPassword: ['새 비밀번호', 'New password'], packToolPasswordConfirm: ['비밀번호 확인', 'Confirm password'],
+    packMode: ['해제 방식', 'Extraction mode'], packSplitSize: ['분할 크기', 'Volume size'],
+  };
+  for (const [id, values] of Object.entries(labels)) {
+    const label = document.getElementById(id)?.parentElement;
+    if (label?.firstChild?.nodeType === Node.TEXT_NODE) label.firstChild.textContent = packText(...values);
+  }
+  const names = {convert: ['포맷 변환', 'Convert'], batch: ['일괄 해제', 'Batch extract'],
+    cbz: ['CBZ 만들기', 'Create CBZ'], privacy: ['파일명까지 암호화', 'Encrypt file names'], split: ['분할 압축', 'Split archive']};
+  document.querySelectorAll('.pack-tool-tab').forEach(button => {
+    button.lastElementChild.textContent = packText(...names[button.dataset.action]);
+  });
+  for (const id of ['packToolsButton', 'packSettingsButton']) {
+    const button = document.getElementById(id);
+    if (button) button.setAttribute('aria-label', TRANSLATIONS[AppState.language][id]);
+  }
+  if (document.getElementById('packAction')) updateToolFields();
+};
+
 function packModal(id, title, content) {
   const node = document.createElement('div');
   node.id = id; node.className = 'layer-modal-backdrop';
@@ -31,10 +65,17 @@ function updateToolFields() {
     convert: ['포맷 변환', '압축 파일을 ZIP, 7Z 또는 TAR 계열 형식으로 안전하게 변환합니다.'],
     batch: ['일괄 해제', '여러 압축 파일을 선택한 위치에 한 번에 풀어냅니다.'],
     cbz: ['CBZ 만들기', '이미지를 자연스러운 순서로 정리해 만화책용 CBZ를 만듭니다.'],
-    privacy: ['개인정보 보호 압축', '파일 내용과 이름을 모두 숨기는 7Z AES 암호화 파일을 만듭니다.'],
+    privacy: ['파일명까지 암호화', '비밀번호 없이는 내용뿐 아니라 내부 파일명·폴더 목록도 볼 수 없는 7Z를 만듭니다.'],
     split: ['분할 압축', '큰 압축 파일을 선택한 크기의 번호 파일로 나눕니다.'],
   };
-  const [title, copy] = descriptions[action] || descriptions.convert;
+  const english = {
+    convert: ['Convert', 'Convert an archive to ZIP, 7Z, or a TAR format.'],
+    batch: ['Batch extract', 'Extract several archives into the selected location.'],
+    cbz: ['Create CBZ', 'Arrange images in natural order and create a comic book archive.'],
+    privacy: ['Encrypt file names', 'Require a password to view internal file names, folders, and contents.'],
+    split: ['Split archive', 'Divide a large archive into numbered files of the selected size.'],
+  };
+  const [title, copy] = (AppState.language === 'en' ? english : descriptions)[action] || descriptions.convert;
   document.getElementById('packToolTitle').textContent = title;
   document.getElementById('packToolDescription').textContent = copy;
   document.querySelectorAll('[data-actions]').forEach(el => {
@@ -148,7 +189,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const tools = packModal('packTools', '도구', `
     <input type="hidden" id="packAction" value="convert">
     <div class="pack-tool-tabs" role="tablist" aria-label="도구 선택">
-      ${[['convert','convert','포맷 변환'],['batch','batch','일괄 해제'],['cbz','cbz','CBZ 만들기'],['privacy','privacy','개인정보 보호'],['split','split','분할 압축']].map(([action,icon,label])=>`<button class="pack-tool-tab" data-action="${action}" role="tab"><span class="pack-tool-icon">${window.CrowIcons[icon]}</span><span>${label}</span></button>`).join('')}
+      ${[['convert','convert','포맷 변환'],['batch','batch','일괄 해제'],['cbz','cbz','CBZ 만들기'],['privacy','privacy','파일명까지 암호화'],['split','split','분할 압축']].map(([action,icon,label])=>`<button class="pack-tool-tab" data-action="${action}" role="tab"><span class="pack-tool-icon">${window.CrowIcons[icon]}</span><span>${label}</span></button>`).join('')}
     </div>
     <div class="pack-tool-intro"><strong id="packToolTitle"></strong><span id="packToolDescription"></span></div>
     <div class="pack-row"><button class="btn" id="packSelect">파일 선택 / Files</button><button class="btn" id="packFolder">폴더 추가 / Folder</button><button class="btn" id="packClear">비우기 / Clear</button></div>
@@ -171,7 +212,7 @@ document.addEventListener('DOMContentLoaded', () => {
       <div class="settings-action-row" id="packShellIntegration"><div><strong>탐색기 우클릭 메뉴</strong><span>압축 및 해제 명령을 표시합니다.</span></div><div class="pack-row"><button class="btn" id="packShellOn">사용</button><button class="btn" id="packShellOff">해제</button></div></div>
     </section>
     <section class="settings-section"><h3>업데이트</h3>
-      <div class="settings-action-row"><div><strong>Crow Pack v1.5.2</strong><span id="packUpdateDescription">실행할 때 새 GitHub 릴리스를 자동으로 확인합니다.</span><span id="packUpdateStatus" role="status"></span></div><div id="packUpdateButton"></div></div>
+      <div class="settings-action-row"><div><strong>Crow Pack v1.5.3</strong><span id="packUpdateDescription">실행할 때 새 GitHub 릴리스를 자동으로 확인합니다.</span><span id="packUpdateStatus" role="status"></span></div><div id="packUpdateButton"></div></div>
     </section>`);
   document.getElementById('packGeneral').append(document.querySelector('#modalInfoApp .settings-panel'));
   document.getElementById('packUpdateButton').append(document.getElementById('btnToolUpdate'));
@@ -182,27 +223,28 @@ document.addEventListener('DOMContentLoaded', () => {
   for (const [id, label, icon, modal] of [['packToolsButton','도구','tools',tools],['packSettingsButton','설정','settings',settings]]) {
     const b = document.createElement('button'); b.id=id; b.className='tool-icon-btn';
     b.innerHTML = `${window.CrowIcons[icon] || ''}<span class="tool-btn-label">${label}</span>`;
-    b.onclick=()=>{ modal.classList.add('active'); if(modal===settings && AppState.pyBridge) AppState.pyBridge.integrationStatus(r=>{const rows=JSON.parse(r),assigned=rows.filter(x=>x.handler).length;document.getElementById('packAssociations').textContent=`${rows.length}개 형식 중 ${assigned}개에 기본 앱이 지정됨`;}); };
+    b.onclick=()=>{ modal.classList.add('active'); if(modal===settings && AppState.pyBridge) AppState.pyBridge.integrationStatus(r=>{const rows=JSON.parse(r),assigned=rows.filter(x=>x.is_crowpack).length,seven=rows.find(x=>x.extension==='.7z');document.getElementById('packAssociations').textContent=packText(`${rows.length}개 중 ${assigned}개가 Crow Pack에 연결됨 · .7z: ${seven?.handler || '미지정'}`,`${assigned} of ${rows.length} types use Crow Pack · .7z: ${seven?.handler || 'Not assigned'}`);}); };
     nav.insertBefore(b, document.getElementById('btnToolInfo'));
     b.querySelector('.tool-btn-label').dataset.i18n = id;
     b.dataset.tooltip = label;
+    b.setAttribute('aria-label', label);
   }
   TRANSLATIONS.ko.packToolsButton='도구'; TRANSLATIONS.en.packToolsButton='Tools';
   TRANSLATIONS.ko.packSettingsButton='설정'; TRANSLATIONS.en.packSettingsButton='Settings';
   TRANSLATIONS.ko['nav.info']='도움말'; TRANSLATIONS.en['nav.info']='Help';
   TRANSLATIONS.ko['info.title']='도움말'; TRANSLATIONS.en['info.title']='Help';
-  TRANSLATIONS.ko['info.help'] += '<br>• 개인정보 보호: 7Z 파일 내용·이름 암호화. 비밀번호는 다른 수단으로 전달하세요.<br>• 목록에서 파일을 잡아 Explorer 폴더로 끌면 선택 항목을 복사합니다. 큰 파일은 준비가 필요합니다.<br>• 도구에서 포맷 변환, 일괄 해제, CBZ 생성, 개인정보 보호 및 분할 압축을 실행합니다.<br>• CBZ: 순서 있는 이미지 문서용 ZIP. ZIP/7Z/RAR/TAR/ALZ/EGG/CAB/ISO 지원.';
-  TRANSLATIONS.en['info.help'] += '<br>• Privacy: encrypted 7Z contents and names. Share the password separately.<br>• Drag selected archive items into Explorer to copy them. Large files need preparation.<br>• Tools: format conversion, SHA-256 calculation/verification, ordered-image CBZ, batch extraction.';
+  TRANSLATIONS.ko['info.help'] += '<br>• 파일명까지 암호화: 7Z 파일 내용·이름 암호화. 비밀번호는 다른 수단으로 전달하세요.<br>• 목록에서 파일을 잡아 Explorer 폴더로 끌면 선택 항목을 복사합니다. 큰 파일은 준비가 필요합니다.<br>• 도구에서 포맷 변환, 일괄 해제, CBZ 생성, 파일명까지 암호화 및 분할 압축을 실행합니다.<br>• CBZ: 순서 있는 이미지 문서용 ZIP. ZIP/7Z/RAR/TAR/ALZ/EGG/CAB/ISO 지원.';
+  TRANSLATIONS.en['info.help'] += '<br>• Encrypt file names: encrypted 7Z contents and names. Share the password separately.<br>• Drag selected archive items into Explorer to copy them. Large files need preparation.<br>• Tools: format conversion, batch extraction, CBZ creation, file name encryption, and split archives.';
   document.getElementById('btnToolInfo').removeAttribute('title');
   document.getElementById('btnToolInfo').dataset.tooltip='도움말 / Help';
   applyLanguage(AppState.language);
   const pwd = document.getElementById('txtCompressPwd');
-  pwd.insertAdjacentHTML('beforebegin', `<label>보안 수준 / Security<select id="securityMode" class="form-control"><option value="none">암호 없음 / None</option><option value="zip">일반 암호 보호 / ZIP AES-256</option><option value="private">개인정보 보호 / Private 7Z</option></select></label><p id="securityNote" class="preset-note"></p>`);
+  pwd.insertAdjacentHTML('beforebegin', `<label>암호화 방식 / Encryption<select id="securityMode" class="form-control"><option value="none">암호 없음 / None</option><option value="zip">내용만 암호화 / ZIP AES-256</option><option value="private">파일명까지 암호화 / 7Z</option></select></label><p id="securityNote" class="preset-note"></p>`);
   pwd.insertAdjacentHTML('afterend', `<input type="password" id="passwordConfirm" class="form-control" placeholder="비밀번호 확인 / Confirm password" autocomplete="off"><div class="pack-row"><button class="btn" id="passwordShow">표시 / Show</button><button class="btn" id="passwordRandom">자동 생성 / Random</button><button class="btn" id="passwordPhrase">패스프레이즈 / Phrase</button><button class="btn" id="passwordCopy">복사 / Copy</button></div><span id="passwordStrength" role="status"></span>`);
   const confirmation = document.getElementById('passwordConfirm');
   const strength=()=> { const length=pwd.value.length; document.getElementById('passwordStrength').textContent=packText(length>=20?'강함':length>=12?'보통':'짧음',length>=20?'Strong':length>=12?'Moderate':'Short')+' · '+packText(pwd.value && pwd.value===confirmation.value?'일치':'불일치',pwd.value && pwd.value===confirmation.value?'Match':'Mismatch'); };
   pwd.oninput=confirmation.oninput=strength;
-  const security=()=> { const mode=document.getElementById('securityMode').value; pwd.disabled=confirmation.disabled=mode==='none'; if(mode!=='none')document.getElementById('selCompressFmt').value=mode==='private'?'7Z':'ZIP'; document.getElementById('securityNote').textContent=mode==='private'?'7Z AES + Header Encryption: 파일 내용·파일명·폴더명 보호 / Contents and names protected':mode==='zip'?'ZIP AES-256은 파일 내용은 보호하지만 내부 파일 이름은 숨기지 않습니다. / Contents encrypted; names remain visible.':''; };
+  const security=()=> { const mode=document.getElementById('securityMode').value; pwd.disabled=confirmation.disabled=mode==='none'; if(mode!=='none')document.getElementById('selCompressFmt').value=mode==='private'?'7Z':'ZIP'; document.getElementById('securityNote').textContent=mode==='private'?packText('비밀번호 없이는 내부 파일명·폴더 목록과 내용을 볼 수 없습니다.','A password is required to see file names, folders, and contents.'):mode==='zip'?packText('내용은 암호화되지만 내부 파일명·폴더 목록은 보입니다.','Contents are encrypted; file names and folders remain visible.'):''; };
   document.getElementById('securityMode').onchange=security; security();
   document.getElementById('passwordShow').onclick=()=>{pwd.type=confirmation.type=pwd.type==='password'?'text':'password';};
   for(const [id, mode] of [['passwordRandom','random'],['passwordPhrase','phrase']])document.getElementById(id).onclick=()=>AppState.pyBridge?.generatePassword(mode, value=>{pwd.value=confirmation.value=value;strength();});

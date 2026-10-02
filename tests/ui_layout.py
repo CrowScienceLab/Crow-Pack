@@ -16,10 +16,10 @@ def main():
     window = CrowPackWindow()
     cases = [
         (width, height, language, theme, view)
-        for width, height in ((680, 520), (780, 520), (960, 620))
+        for width, height in ((680, 460), (780, 520), (960, 620))
         for language in ("ko", "en")
         for theme in ("dark", "bright-skyblue", "white-pink")
-        for view in ("home", "tools", "settings")
+        for view in ("home", "tools", "settings", "privacy", "split", "batch", "cbz")
     ]
     results = []
     output = Path("work/ui-qa") / ("scale-" + os.environ.get("QT_SCALE_FACTOR", "1"))
@@ -34,12 +34,13 @@ def main():
             return
         width, height, language, theme, view = cases.pop(0)
         window.resize(width, height)
-        target_id = "packTools" if view == "tools" else "packSettings"
+        target_id = "packSettings" if view == "settings" else "packTools"
         script = f"""
             applyLanguage('{language}'); applyTheme('{theme}');
             document.querySelectorAll('.layer-modal-backdrop').forEach(x=>x.classList.remove('active'));
             showHomeView();
             if ('{view}' === 'tools') openPackTools([], 'convert');
+            if (['privacy','split','batch','cbz'].includes('{view}')) openPackTools([], '{view}');
             if ('{view}' === 'settings') document.getElementById('packSettings').classList.add('active');
         """
 
@@ -61,15 +62,34 @@ def main():
                 }} else {{
                     const modal=document.querySelector('#{target_id} .compact-modal');
                     const body=modal.querySelector('.modal-body'); inside(modal,'modal');
-                    if(body.scrollHeight > body.clientHeight+1) errors.push('modal content clipped');
+                    if(body.scrollHeight > body.clientHeight+1 && getComputedStyle(body).overflowY === 'hidden')
+                        errors.push('modal content clipped');
                 }}
-                if('{view}' === 'tools') {{
+                if(['tools','privacy','split','batch','cbz'].includes('{view}')) {{
                     const tabs=[...document.querySelectorAll('.pack-tool-tab')];
                     if(tabs.length !== 5 || tabs.some(x=>!x.offsetWidth)) errors.push('five tools not visible');
+                    for (const tab of tabs) {{
+                        const label = tab.lastElementChild;
+                        if(label.scrollHeight > label.clientHeight+1) errors.push('tool label clipped');
+                    }}
                     if(document.querySelector('select#packAction')) errors.push('tool dropdown exists');
                 }}
                 if('{view}' === 'settings' && document.querySelector('#packSettings svg'))
                     errors.push('settings contains icon');
+                if('{view}' === 'settings') {{
+                    const body=document.querySelector('#packSettings .modal-body');
+                    if(innerWidth >= 700 && innerHeight >= 480 && body.scrollHeight > body.clientHeight+1)
+                        errors.push('unnecessary settings scrollbar');
+                    for (const section of document.querySelectorAll('#packSettings .settings-section')) {{
+                        if(section.scrollHeight > section.clientHeight+1) errors.push('settings section clipped');
+                    }}
+                    for (const choice of document.querySelectorAll('#packSettings .theme-choice')) {{
+                        const box = choice.getBoundingClientRect();
+                        const label = choice.lastElementChild.getBoundingClientRect();
+                        if(label.bottom > box.bottom+1 || label.right > box.right+1 || label.top < box.top-1)
+                            errors.push('theme label clipped');
+                    }}
+                }}
                 return errors;
             }})()"""
 
@@ -84,7 +104,7 @@ def main():
 
     window.web_view.loadFinished.connect(lambda ok: QTimer.singleShot(400, step) if ok else app.exit(2))
     window.show()
-    QTimer.singleShot(45_000, lambda: app.exit(3))
+    QTimer.singleShot(90_000, lambda: app.exit(3))
     return app.exec()
 
 

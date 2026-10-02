@@ -11,7 +11,7 @@ from pathlib import Path
 from PIL import Image
 
 ROOT = Path(__file__).resolve().parents[1]
-VERSION = "1.5.2"
+VERSION = "1.5.3"
 PACKAGE_DIR = ROOT / "build" / "msix" / "CrowPack"
 OUTPUT = ROOT / "release" / f"CrowPack-v{VERSION}-Store-x64.msix"
 

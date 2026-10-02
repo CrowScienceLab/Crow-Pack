@@ -96,6 +96,9 @@ class SevenZipHandler:
                 if not member_is_selected(clean_name, selected_files):
                     continue
                 chosen.append(info.filename)
+                destination = safe_destination(target_dir, info.filename)
+                if not info.is_directory:
+                    extracted.append(destination)
                 entries.append({
                     "name": clean_name,
                     "size": info.uncompressed,
@@ -106,9 +109,7 @@ class SevenZipHandler:
             targets = chosen if selected_files is not None else None
             archive.extract(path=target_dir, targets=targets)
 
-            for root, _, files in os.walk(target_dir):
-                for f in files:
-                    extracted.append(os.path.join(root, f))
+            extracted = [path for path in extracted if os.path.isfile(path)]
 
         if progress_callback:
             progress_callback(100, 100, "완료")

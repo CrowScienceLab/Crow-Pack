@@ -135,7 +135,7 @@ class ToolsBridge(QObject):
                         result = batch_extract(paths, output, options.get("mode", "new_folder"), password, progress)
                     elif action == "privacy":
                         if not options.get("outputPassword"):
-                            raise ValueError("개인정보 보호 압축에는 비밀번호가 필요합니다.")
+                            raise ValueError("파일명까지 암호화하려면 비밀번호가 필요합니다.")
                         result = ArchiveManager.create_archive(
                             paths,
                             output,
@@ -218,4 +218,10 @@ class ToolsBridge(QObject):
 
     @Slot()
     def openDefaultApps(self):
-        os.startfile("ms-settings:defaultapps?registeredAppUser=Crow%20Pack")
+        if self._is_packaged():
+            os.startfile("ms-settings:defaultapps?registeredAUMID=170231F2.CrowPack_9fbspzvkgt7f8%21CrowPack")
+        else:
+            from ..engine.shell_integration import register
+
+            register(menu=False)
+            os.startfile("ms-settings:defaultapps?registeredAppUser=Crow%20Pack")

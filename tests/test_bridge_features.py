@@ -45,13 +45,13 @@ class TestBridgeFeatures(unittest.TestCase):
         response.__enter__.return_value = response
         response.__exit__.return_value = False
         response.read.return_value = json.dumps({
-            "tag_name": "v1.5.2",
-            "html_url": "https://github.com/CrowScienceLab/Crow-Pack/releases/tag/v1.5.2",
+            "tag_name": "v1.5.3",
+            "html_url": "https://github.com/CrowScienceLab/Crow-Pack/releases/tag/v1.5.3",
         }).encode("utf-8")
         with patch("src.bridge.core_bridge.urllib.request.urlopen", return_value=response):
             result = json.loads(CoreBridge().checkForUpdates())
         self.assertTrue(result["success"])
-        self.assertEqual(result["version"], "1.5.2")
+        self.assertEqual(result["version"], "1.5.3")
         self.assertFalse(result["update_available"])
 
     def test_update_status_exposes_verified_newer_installer(self):
@@ -59,11 +59,11 @@ class TestBridgeFeatures(unittest.TestCase):
         response.__enter__.return_value = response
         response.__exit__.return_value = False
         response.read.return_value = json.dumps({
-            "tag_name": "v1.5.3",
-            "html_url": "https://github.com/CrowScienceLab/Crow-Pack/releases/tag/v1.5.3",
+            "tag_name": "v1.5.4",
+            "html_url": "https://github.com/CrowScienceLab/Crow-Pack/releases/tag/v1.5.4",
             "assets": [{
-                "name": "CrowPack-v1.5.3-Setup-x64.exe",
-                "browser_download_url": "https://github.com/CrowScienceLab/Crow-Pack/releases/download/v1.5.3/CrowPack-v1.5.3-Setup-x64.exe",
+                "name": "CrowPack-v1.5.4-Setup-x64.exe",
+                "browser_download_url": "https://github.com/CrowScienceLab/Crow-Pack/releases/download/v1.5.4/CrowPack-v1.5.4-Setup-x64.exe",
                 "digest": "sha256:" + "a" * 64,
                 "size": 123456,
             }],
@@ -71,7 +71,7 @@ class TestBridgeFeatures(unittest.TestCase):
         with patch("src.bridge.core_bridge.urllib.request.urlopen", return_value=response):
             result = json.loads(CoreBridge().checkForUpdates())
         self.assertTrue(result["update_available"])
-        self.assertEqual(result["latest_tag"], "v1.5.3")
+        self.assertEqual(result["latest_tag"], "v1.5.4")
         self.assertEqual(result["sha256"], "a" * 64)
 
     def test_store_managed_update_uses_store_without_installer_asset(self):
@@ -79,8 +79,8 @@ class TestBridgeFeatures(unittest.TestCase):
         response.__enter__.return_value = response
         response.__exit__.return_value = False
         response.read.return_value = json.dumps({
-            "tag_name": "v1.5.3",
-            "html_url": "https://github.com/CrowScienceLab/Crow-Pack/releases/tag/v1.5.3",
+            "tag_name": "v1.5.4",
+            "html_url": "https://github.com/CrowScienceLab/Crow-Pack/releases/tag/v1.5.4",
             "assets": [],
         }).encode("utf-8")
         with (
@@ -112,10 +112,10 @@ class TestBridgeFeatures(unittest.TestCase):
     def test_approved_update_download_is_hash_checked_before_launch(self):
         payload = b"Crow Pack signed installer fixture"
         release = {
-            "tag_name": "v1.5.3",
+            "tag_name": "v1.5.4",
             "assets": [{
-                "name": "CrowPack-v1.5.3-Setup-x64.exe",
-                "browser_download_url": "https://github.com/CrowScienceLab/Crow-Pack/releases/download/v1.5.3/CrowPack-v1.5.3-Setup-x64.exe",
+                "name": "CrowPack-v1.5.4-Setup-x64.exe",
+                "browser_download_url": "https://github.com/CrowScienceLab/Crow-Pack/releases/download/v1.5.4/CrowPack-v1.5.4-Setup-x64.exe",
                 "digest": "sha256:" + hashlib.sha256(payload).hexdigest(),
                 "size": len(payload),
             }],
@@ -128,10 +128,10 @@ class TestBridgeFeatures(unittest.TestCase):
             patch("src.bridge.core_bridge.urllib.request.urlopen", side_effect=[api_response, installer_response]),
             patch("src.bridge.core_bridge.subprocess.Popen") as launch,
         ):
-            bridge.downloadAndInstallUpdate("v1.5.3")
+            bridge.downloadAndInstallUpdate("v1.5.4")
             bridge._update_job.join(timeout=5)
         self.assertFalse(bridge._update_job.is_alive())
-        installer = os.path.join(self.workspace, "Crow Pack", "Updates", "CrowPack-v1.5.3-Setup-x64.exe")
+        installer = os.path.join(self.workspace, "Crow Pack", "Updates", "CrowPack-v1.5.4-Setup-x64.exe")
         with open(installer, "rb") as stream:
             self.assertEqual(stream.read(), payload)
         launch.assert_called_once()

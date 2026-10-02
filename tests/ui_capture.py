@@ -16,14 +16,14 @@ def main():
     if store_mode:
         CoreBridge._is_packaged = staticmethod(lambda: True)
     window = CrowPackWindow()
-    window.resize(1366, 768)
+    window.resize(780, 520)
     output = Path('work/store-screenshots' if store_mode else 'work/ui-qa')
     output.mkdir(parents=True, exist_ok=True)
     scripts = [
         ('home', "showHomeView();"),
         ('security', "openNewCompressModal(); document.getElementById('securityMode').value='private';document.getElementById('securityMode').dispatchEvent(new Event('change'));"),
         ('tools', "closeNewCompressModal();openPackTools([], 'convert');"),
-        ('settings', "document.getElementById('packTools').classList.remove('active');document.getElementById('packSettings').classList.add('active');"),
+        ('settings', "document.getElementById('packTools').classList.remove('active');document.getElementById('packSettingsButton').click();"),
         ('light', "document.getElementById('packSettings').classList.remove('active');applyTheme('white-pink');")
     ]
     def capture():
