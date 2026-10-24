@@ -24,7 +24,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('archive', type=Path)
     args = parser.parse_args()
-    icons = {'logo': '<img src="../../assets/crow_pack.png" alt="" class="crow-brand-image">'}
+    icons = {'logo': '<img src="../../assets/CrowPack.png" alt="" class="crow-brand-image">'}
     with tarfile.open(args.archive) as archive:
         package = json.loads(archive.extractfile('package/package.json').read())
         if package['version'] != '0.468.0':
@@ -40,7 +40,9 @@ def main():
     (ROOT / 'src/ui/icons.js').write_text(
         '/* Lucide 0.468.0 — ISC / MIT. See assets/LUCIDE-LICENSE.txt. */\n'
         + 'const CrowIcons = ' + json.dumps(icons, ensure_ascii=False, indent=2) + ';\n'
-        + 'CrowIcons.extract = CrowIcons.extractHere;\nwindow.CrowIcons = CrowIcons;\n',
+        + 'CrowIcons.extract = CrowIcons.extractHere;\n'
+        + 'CrowIcons.folderUp = CrowIcons.folder.replace(\'</svg>\', \'<path d="M12 17V9m-3 3 3-3 3 3" /></svg>\');\n'
+        + 'window.CrowIcons = CrowIcons;\n',
         encoding='utf-8',
     )
 

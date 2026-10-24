@@ -1,4 +1,13 @@
-# Crow Pack v1.5.3
+# CrowPack v1.6.0
+
+## 1.6 변경 사항
+
+노란 부리 까마귀 아이콘과 LED 라인 스타일을 적용하고 제품명을 CrowPack으로 통일했습니다.
+압축 내부 폴더를 Explorer로 끌 때 하위 구조가 평탄화되거나 일부만 복사되던 문제를 수정했습니다.
+큰 파일의 추출 준비는 백그라운드에서 진행합니다. 준비 중 버튼을 놓았다면 상태창의
+준비 완료 안내 후 같은 항목을 다시 끌면 됩니다. 원본 압축 파일은 이동·삭제하지 않습니다.
+홈 형식은 ZIP → 7Z → RAR → TAR.GZ → TAR.XZ → ALZ → EGG → CAB → ISO 순서입니다.
+상세 검증 범위와 아직 필요한 수동 확인은 [1.6 검토 보고서](docs/V1.6-REVIEW.md)를 참고하세요.
 
 ## v1.5 주요 기능
 
@@ -9,19 +18,19 @@
 - Explorer로 선택 항목 드래그 추출, 여러 압축파일 일괄 해제.
 - ZIP/7Z/TAR 계열 포맷 변환, 여러 파일 일괄 해제와 분할 압축.
 - 자연 정렬 CBZ 이미지 문서 생성 및 탐색·선택 해제·미리보기.
-- 다섯 기능이 항상 보이는 도구 화면, 단순 목록형 설정, 새 Crow Pack 앱 아이콘.
+- 다섯 기능이 항상 보이는 도구 화면, 단순 목록형 설정, 새 CrowPack 앱 아이콘.
 - Windows 클래식 우클릭 메뉴 및 사용자별 확장자 등록.
 - 실행 시 GitHub 최신 릴리스를 확인하고, 사용자 승인 후 설치 파일을 내려받아 SHA-256 검증 후 업데이트.
 - Microsoft Store 설치판은 새 버전을 확인한 뒤 Store 제품 페이지에서 안전하게 업데이트.
 
 보안·Windows 정책·검증 범위는 [v1.5 검증 문서](docs/V1.5-VALIDATION.md)를 참고하세요.
 
-Crow Pack은 Windows 10/11용 압축 파일 생성·해제 및 ISO 이미지 탐색·생성 데스크톱
+CrowPack은 Windows 10/11용 압축 파일 생성·해제 및 ISO 이미지 탐색·생성 데스크톱
 앱입니다. 한국어 파일명 정규화와 로컬 전용 PySide6 WebEngine UI를 제공합니다.
 
 - 제작: `Crow Science Lab`
 - 플랫폼: Windows 10/11 64-bit
-- Python: 3.10~3.14
+- Python: 3.11~3.14 (보안 갱신된 Pillow 13 필요, 배포본은 Python 3.12 기반)
 
 ## 지원 범위
 
@@ -48,7 +57,7 @@ ISO 파일을 직접 끌어다 놓을 수 있습니다. `PDF 용량 조절` 버�
 전자서명 또는 암호화된 PDF는 원본 보호를 위해 변경하지 않습니다.
 
 압축 파일을 열면 모든 파일이 기본 선택됩니다. `Shift+클릭` 범위 선택, `Ctrl+클릭` 개별
-선택과 마우스 오른쪽 버튼 드래그 연속 선택을 지원합니다. 앱 확장자 연결은 Crow Pack을
+선택과 마우스 오른쪽 버튼 드래그 연속 선택을 지원합니다. 앱 확장자 연결은 CrowPack을
 Windows 연결 후보로 등록하고, 기존 기본 앱이 없는 지원 확장자는 자동 연결합니다.
 
 `도움말`에서 한국어/English를 선택하고 Black(기본), Bright Skyblue, White Pink
@@ -66,7 +75,7 @@ py -3.12 -m venv .venv
 .\.venv\Scripts\python.exe main.py
 ```
 
-설치 후에는 `Crow_Pack.bat`로도 실행할 수 있습니다.
+설치 후에는 `CrowPack.bat`로도 실행할 수 있습니다.
 
 ## 테스트
 
@@ -83,7 +92,7 @@ py -3.12 -m venv .venv
 압축 생성·해제와 ISO 파일 복사를 확인한 뒤 배포하세요.
 
 Inno Setup 6을 설치한 뒤 `build_installer.bat`를 실행하면
-`release\CrowPack-v1.5.3-Setup-x64.exe` 설치본이 만들어집니다. 설치는 현재 사용자 영역에
+`release\CrowPack-v1.6.0-Setup-x64.exe` 설치본이 만들어집니다. 설치는 현재 사용자 영역에
 진행되므로 관리자 권한이 필요하지 않으며 시작 메뉴와 선택형 바탕 화면 바로가기를 제공합니다.
 
 Microsoft Store용 MSIX는 Windows SDK의 `makeappx.exe`가 있는 환경에서 다음 명령으로 만듭니다.
@@ -92,11 +101,11 @@ Microsoft Store용 MSIX는 Windows SDK의 `makeappx.exe`가 있는 환경에서 
 build_msix.bat --makeappx "C:\path\to\x64\makeappx.exe"
 ```
 
-결과는 `release\CrowPack-v1.5.3-Store-x64.msix`이며 Store ID는 `9NPBKL0XTKQ7`입니다.
+결과는 `release\CrowPack-v1.6.0-Store-x64.msix`이며 Store ID는 `9NPBKL0XTKQ7`입니다.
 
 ## 보안 동작
 
-Crow Pack은 사용자 파일을 외부 서버로 전송하지 않으며 모든 압축 작업을 로컬에서 처리합니다. 자세한 내용은 [개인정보 처리방침](PRIVACY.md)을 참고하세요.
+CrowPack은 사용자 파일을 외부 서버로 전송하지 않으며 모든 압축 작업을 로컬에서 처리합니다. 자세한 내용은 [개인정보 처리방침](PRIVACY.md)을 참고하세요.
 
 - 절대 경로, `..`, 링크, Windows 예약 파일명과 경로 충돌을 차단합니다.
 - 항목 수·단일 파일·전체 해제 크기·압축률 제한으로 압축 폭탄 위험을 줄입니다.

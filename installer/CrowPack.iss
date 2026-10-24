@@ -1,6 +1,6 @@
-#define MyAppName "Crow Pack"
-#define MyAppVersion "1.5.3"
-#define MyAppDisplayVersion "v1.5.3"
+#define MyAppName "CrowPack"
+#define MyAppVersion "1.6.0"
+#define MyAppDisplayVersion "v1.6.0"
 #define MyAppPublisher "Crow Science Lab"
 #define MyAppExeName "CrowPack.exe"
 
@@ -16,18 +16,18 @@ AppName={#MyAppName}
 AppVersion={#MyAppVersion}
 AppVerName={#MyAppName} {#MyAppDisplayVersion}
 AppPublisher={#MyAppPublisher}
-DefaultDirName={localappdata}\Programs\Crow Pack
-DefaultGroupName=Crow Pack
+DefaultDirName={localappdata}\Programs\CrowPack
+DefaultGroupName=CrowPack
 DisableProgramGroupPage=yes
 PrivilegesRequired=lowest
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 OutputDir=..\release
-OutputBaseFilename=CrowPack-v1.5.3-Setup-x64
+OutputBaseFilename=CrowPack-v1.6.0-Setup-x64
 Compression=lzma2/ultra64
 SolidCompression=yes
 WizardStyle=modern
-SetupIconFile=..\assets\crow_pack.ico
+SetupIconFile=..\assets\CrowPack.ico
 CloseApplications=yes
 SetupLogging=yes
 UninstallDisplayIcon={app}\{#MyAppExeName}
@@ -44,15 +44,20 @@ Source: "..\dist\CrowPack\*"; DestDir: "{app}"; Flags: ignoreversion recursesubd
 
 [Icons]
 #ifndef ValidationBuild
-Name: "{group}\Crow Pack"; Filename: "{app}\{#MyAppExeName}"
-Name: "{autodesktop}\Crow Pack"; Filename: "{app}\{#MyAppExeName}"; Tasks: desktopicon
+Name: "{group}\CrowPack"; Filename: "{app}\{#MyAppExeName}"
+Name: "{autodesktop}\CrowPack"; Filename: "{app}\{#MyAppExeName}"; Tasks: desktopicon
 #endif
+
+[InstallDelete]
+; Only obsolete shortcuts owned by this application, not user files.
+Type: files; Name: "{autodesktop}\Crow Pack.lnk"
+Type: files; Name: "{autoprograms}\Crow Pack\Crow Pack.lnk"
 
 [Run]
 #ifndef ValidationBuild
 Filename: "{app}\{#MyAppExeName}"; Parameters: "--register"; Flags: runhidden waituntilterminated
 Filename: "{app}\{#MyAppExeName}"; Parameters: "--default-apps"; Description: "압축파일 연결 설정 열기"; Flags: postinstall skipifsilent
-Filename: "{app}\{#MyAppExeName}"; Description: "Crow Pack 실행"; Flags: nowait postinstall skipifsilent
+Filename: "{app}\{#MyAppExeName}"; Description: "CrowPack 실행"; Flags: nowait postinstall skipifsilent
 #endif
 
 [UninstallRun]

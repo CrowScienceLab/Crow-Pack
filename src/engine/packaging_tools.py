@@ -145,7 +145,7 @@ class DragExportManager:
                 continue
 
     def prepare(self, source, selected, password=None):
-        if not selected:
+        if not isinstance(selected, list) or not selected or any(not isinstance(n, str) or not n for n in selected):
             raise ValueError("추출할 항목을 선택하세요.")
         info = ArchiveManager.list_archive(source, password=password)
         validate_entries(info["items"])
@@ -153,13 +153,16 @@ class DragExportManager:
         if not chosen:
             raise ValueError("선택 항목을 찾을 수 없습니다.")
         target = self.session / str(uuid.uuid4())
-        ArchiveManager.extract_archive(source, str(target), "current", selected, password)
-        # Some legacy handlers extract all members: export only explicitly selected roots.
+        # Export the requested roots, including implicit directories absent from the
+        # archive listing. Returning leaf files here flattens the tree in Explorer.
         roots = []
-        for entry in sorted(chosen, key=lambda e: len(e["name"])):
-            path = Path(safe_destination(str(target), entry["name"]))
-            if path.exists() and not any(path == p or p in path.parents for p in roots):
+        for name in sorted(set(selected), key=lambda n: (n.count('/'), len(n))):
+            path = Path(safe_destination(str(target), name))
+            if not any(path == p or p in path.parents for p in roots):
                 roots.append(path)
+        ArchiveManager.extract_archive(source, str(target), "current", selected, password)
+        if any(not path.exists() for path in roots):
+            raise FileNotFoundError("선택 항목을 모두 준비하지 못했습니다. 압축 파일을 확인하세요.")
         return [str(p) for p in roots]
 
     def close(self):

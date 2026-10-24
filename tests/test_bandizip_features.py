@@ -1,5 +1,5 @@
 """
-Crow Pack - Bandizip-style Features Unit Tests
+CrowPack - Bandizip-style Features Unit Tests
 무결성 테스트, 파일 추가/삭제, 인코딩 지정, 분할 압축, 단일 파일 임시 추출 테스트
 """
 

@@ -1,5 +1,5 @@
 """
-Crow Pack - 7Z, RAR & Miscellaneous Formats Handler
+CrowPack - 7Z, RAR & Miscellaneous Formats Handler
 7Z, RAR, CAB 아카이브 압축, 해제, 무결성 테스트, 파일 추가/삭제 핸들러
 """
 

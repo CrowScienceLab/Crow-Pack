@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' qrc:; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'none'; object-src 'none'; frame-src 'none'; base-uri 'none'; form-action 'none'">
-  <title>Crow Pack v1.5.3 - 압축과 풀기 앱</title>
+  <title>CrowPack v1.6.0 - 압축과 풀기 앱</title>
   <link rel="stylesheet" href="style.css">
   <script src="qrc:///qtwebchannel/qwebchannel.js"></script>
 </head>
@@ -20,8 +20,8 @@
         <div class="brand-crow-logo" id="brandCrowLogo"></div>
         <div class="brand-title-wrap">
           <span class="brand-text">
-            Crow Pack
-            <span class="brand-badge">v1.5.3</span>
+            CrowPack
+            <span class="brand-badge">v1.6.0</span>
           </span>
           <span class="brand-subtext">압축과 풀기 앱</span>
         </div>
@@ -75,11 +75,11 @@
           <span id="iconToolPdfOptimize"></span>
           <span class="tool-btn-label" data-i18n="nav.pdf">PDF 용량 조절</span>
         </button>
-        <button class="tool-icon-btn labeled-tool-btn" id="btnToolUpdate" title="업데이트 확인" data-tooltip="Crow Pack 업데이트 확인">
+        <button class="tool-icon-btn labeled-tool-btn" id="btnToolUpdate" title="업데이트 확인" data-tooltip="CrowPack 업데이트 확인">
           <span id="iconToolUpdate"></span>
           <span class="tool-btn-label" data-i18n="nav.update">업데이트 확인</span>
         </button>
-        <button class="tool-icon-btn labeled-tool-btn" id="btnToolAssociations" title="앱 확장자 연결" data-tooltip="Windows 기본 앱에 Crow Pack 연결">
+        <button class="tool-icon-btn labeled-tool-btn" id="btnToolAssociations" title="앱 확장자 연결" data-tooltip="Windows 기본 앱에 CrowPack 연결">
           <span id="iconToolAssociations"></span>
           <span class="tool-btn-label" data-i18n="nav.association">앱 확장자 연결</span>
         </button>
@@ -104,10 +104,10 @@
         <!-- 2대 핵심 메인 액션 카드 -->
         <div class="home-cards-grid">
           <!-- 카드 1: 압축 파일 열기 -->
-          <div class="action-card open-card" id="btnCardOpenArchive" title="압축 파일 열기" data-tooltip="ALZ, EGG, ZIP, 7Z, RAR 등 탐색 및 해제">
+          <div class="action-card open-card" id="btnCardOpenArchive" title="압축 파일 열기" data-tooltip="ZIP, 7Z, RAR, TAR 및 ISO 탐색·해제">
             <div class="action-card-icon" id="iconCardOpen"></div>
             <div class="action-card-title">압축 파일 열기</div>
-            <div class="action-card-desc">ALZ, EGG, ZIP, 7Z, RAR 등<br>주요 포맷과 ISO 탐색</div>
+            <div class="action-card-desc">ZIP, 7Z, RAR, TAR 등<br>주요 포맷과 ISO 탐색</div>
           </div>
 
           <!-- 카드 2: 새로 압축하기 -->
@@ -122,15 +122,15 @@
 
         <!-- 지원 포맷 뱃지 -->
         <div class="format-badges-row">
-          <span class="fmt-badge kr">ALZ</span>
-          <span class="fmt-badge kr">EGG</span>
           <span class="fmt-badge">ZIP</span>
           <span class="fmt-badge">7Z</span>
           <span class="fmt-badge">RAR</span>
           <span class="fmt-badge">TAR.GZ</span>
           <span class="fmt-badge">TAR.XZ</span>
-          <span class="fmt-badge">CAB</span>
-          <span class="fmt-badge">ISO</span>
+          <span class="fmt-badge">ALZ</span>
+          <span class="fmt-badge">EGG</span>
+          <span class="fmt-badge utility">CAB</span>
+          <span class="fmt-badge utility">ISO</span>
         </div>
       </div>
     </section>
@@ -183,7 +183,7 @@
   <div class="layer-modal-backdrop" id="modalNewCompress">
     <div class="compact-modal">
       <div class="modal-header">
-        <span class="modal-title">⚡ 새로 압축하기 (Crow Pack)</span>
+        <span class="modal-title">⚡ 새로 압축하기 (CrowPack)</span>
         <button class="modal-close-btn" id="btnCloseNewCompress">&times;</button>
       </div>
       <div class="modal-body">
@@ -415,7 +415,7 @@
         <div style="background: var(--bg-main); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 12px; display: flex; gap: 12px; align-items: center;">
           <div style="width: 44px; height: 44px;" id="infoCrowLogo"></div>
           <div>
-            <h4 class="theme-heading" style="font-size: 13px; font-weight: 700;">Crow Pack v1.5.3</h4>
+            <h4 class="theme-heading" style="font-size: 13px; font-weight: 700;">CrowPack v1.6.0</h4>
             <p class="theme-accent-text" style="font-size: 11px; font-weight: 600;" data-i18n="info.author">제작: Crow Science Lab</p>
             <p style="font-size: 10px; color: var(--text-muted);" data-i18n="info.summary">압축 파일과 ISO 이미지를 안전하게 탐색·복사</p>
           </div>
@@ -456,7 +456,7 @@
         </div>
 
         <div style="font-size: 11px; color: var(--text-muted); padding: 0 4px;">
-          <span>현재 버전: <strong>v1.5.3</strong></span>
+          <span>현재 버전: <strong>v1.6.0</strong></span>
         </div>
       </div>
       <div class="modal-footer">

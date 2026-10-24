@@ -11,12 +11,12 @@ repository owner's private GitHub security advisory channel after the repository
 is published.
 
 Include the affected format, a minimal reproduction archive, expected impact,
-and the Crow Pack and Python versions. Remove unrelated personal files before
+and the CrowPack and Python versions. Remove unrelated personal files before
 sharing a sample archive.
 
 ## Archive safety limits
 
-Crow Pack treats archive names and contents as untrusted. It blocks absolute and
+CrowPack treats archive names and contents as untrusted. It blocks absolute and
 parent-relative paths, links, Windows device names, case-insensitive collisions,
 more than 100,000 entries, files larger than 8 GiB, total output larger than
 32 GiB, and suspicious compression ratios. Executable files cannot be launched

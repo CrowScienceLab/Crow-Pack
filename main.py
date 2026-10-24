@@ -1,6 +1,6 @@
 """
-Crow Pack - Main Application Entry Point
-Crow Pack v1.5.3 - 압축과 풀기 앱 (제작: Crow Science Lab)
+CrowPack - Main Application Entry Point
+CrowPack v1.6.0 - 압축과 풀기 앱 (제작: Crow Science Lab)
 """
 
 import json
@@ -80,6 +80,7 @@ class DropAwareWebEngineView(QWebEngineView):
 class CrowPackWindow(QMainWindow):
     def closeEvent(self, event):
         if ((self.bridge._job and self.bridge._job.is_alive())
+                or (self.bridge._drag_job and self.bridge._drag_job.is_alive())
                 or (self.bridge._update_job and self.bridge._update_job.is_alive())):
             event.ignore()
             return
@@ -90,8 +91,8 @@ class CrowPackWindow(QMainWindow):
     def __init__(self, initial_files=None):
         super().__init__()
         # 창 상단 타이틀
-        self.setWindowTitle("Crow Pack v1.5.3 - 압축과 풀기 앱")
-        self.setWindowIcon(QIcon(bundled_path("assets", "crow_pack.ico")))
+        self.setWindowTitle("CrowPack v1.6.0 - 압축과 풀기 앱")
+        self.setWindowIcon(QIcon(bundled_path("assets", "CrowPack.ico")))
         
         # 쾌적하고 균형 잡힌 창 크기 (780 x 520)
         self.resize(780, 520)
@@ -154,12 +155,12 @@ def main():
         (unregister if '--unregister' in sys.argv else register)()
         return
     app = QApplication(sys.argv)
-    app.setApplicationName("Crow Pack")
+    app.setApplicationName("CrowPack")
     app.setOrganizationName("Crow Science Lab")
     if '--default-apps' in sys.argv:
-        os.startfile('ms-settings:defaultapps?registeredAppUser=Crow%20Pack')
+        os.startfile('ms-settings:defaultapps?registeredAppUser=CrowPack')
         return
-    app.setWindowIcon(QIcon(bundled_path("assets", "crow_pack.ico")))
+    app.setWindowIcon(QIcon(bundled_path("assets", "CrowPack.ico")))
 
     initial_files = []
     shell_action = None

@@ -1,5 +1,5 @@
 """
-Crow Pack - TAR & Compressed TAR Handler
+CrowPack - TAR & Compressed TAR Handler
 .tar, .tar.gz (.tgz), .tar.bz2 (.tbz2), .tar.xz (.txz) 압축 및 해제 핸들러
 """
 

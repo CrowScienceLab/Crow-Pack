@@ -1,5 +1,5 @@
 """
-Crow Pack - Unified Archive Manager
+CrowPack - Unified Archive Manager
 압축 포맷 및 ISO 이미지 통합 탐색, 해제, 무결성 테스트, 분할 압축 엔진
 """
 

@@ -11,7 +11,7 @@ from pathlib import Path
 from PIL import Image
 
 ROOT = Path(__file__).resolve().parents[1]
-VERSION = "1.5.3"
+VERSION = "1.6.0"
 PACKAGE_DIR = ROOT / "build" / "msix" / "CrowPack"
 OUTPUT = ROOT / "release" / f"CrowPack-v{VERSION}-Store-x64.msix"
 
@@ -47,12 +47,14 @@ def build(makeappx: Path) -> Path:
     if not (app_dir / "CrowPack.exe").is_file():
         raise FileNotFoundError("dist/CrowPack/CrowPack.exe가 없습니다. build_exe.bat을 먼저 실행하세요.")
     if PACKAGE_DIR.exists():
+        if PACKAGE_DIR.resolve() != PACKAGE_DIR or not PACKAGE_DIR.is_relative_to(ROOT / 'build'):
+            raise ValueError('MSIX 임시 폴더가 빌드 경로 밖을 가리킵니다.')
         shutil.rmtree(PACKAGE_DIR)
     shutil.copytree(app_dir, PACKAGE_DIR)
     shutil.copy2(ROOT / "store" / "AppxManifest.xml", PACKAGE_DIR / "AppxManifest.xml")
     asset_dir = PACKAGE_DIR / "StoreAssets"
     asset_dir.mkdir()
-    with Image.open(ROOT / "assets" / "crow_pack.png") as opened:
+    with Image.open(ROOT / "assets" / "CrowPack.png") as opened:
         source = opened.convert("RGBA")
         for name, width, height in (
             ("StoreLogo.png", 50, 50),

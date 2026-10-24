@@ -12,7 +12,7 @@ from typing import BinaryIO, Iterable, Mapping
 
 
 class ArchiveSecurityError(ValueError):
-    """Raised when an archive violates Crow Pack's extraction policy."""
+    """Raised when an archive violates CrowPack's extraction policy."""
 
 
 @dataclass(frozen=True)

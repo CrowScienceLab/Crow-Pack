@@ -1281,6 +1281,31 @@ body[data-theme]:not([data-theme="dark"]) .info-help-copy strong {
 .pack-modal label.plain-check { display: flex; flex-direction: row; align-items: center; gap: 6px; }
 #packSettings .tool-icon-btn, #packSettings .labeled-tool-btn { width: auto; min-width: 0; min-height: 0; height: auto; display: flex; padding: 6px 12px; }
 
+/* LED glass: preserve precise Lucide geometry, add depth without blurring labels. */
+#navGroupHome .tool-icon-btn, .action-card-icon { --led: #54d9ff; }
+#btnToolNewArchive, .new-card .action-card-icon { --led: #b19aff; }
+#btnToolIsoImage { --led: #56efd0; }
+#btnToolPdfOptimize { --led: #ff96bb; }
+#navGroupHome .tool-icon-btn > span:first-child, .action-card-icon {
+  color: var(--led);
+  background: radial-gradient(ellipse at 30% 15%, #ffffff18, transparent 65%), linear-gradient(145deg, #152738, #0b101b);
+  border: 1px solid color-mix(in srgb, var(--led) 42%, transparent);
+  box-shadow: inset 0 1px 0 #ffffff24, inset 0 0 12px #51d7ff12, 0 0 12px #51d7ff16;
+  border-radius: 12px;
+}
+#navGroupHome .tool-icon-btn > span:first-child { padding: 6px; }
+#navGroupHome .tool-icon-btn svg, .action-card-icon svg {
+  filter: drop-shadow(0 0 2px currentColor) drop-shadow(0 0 6px currentColor);
+  stroke-width: 1.8;
+}
+#navGroupHome .tool-icon-btn:hover > span:first-child, .action-card:hover .action-card-icon {
+  box-shadow: inset 0 1px 0 #ffffff44, 0 0 16px color-mix(in srgb, var(--led) 30%, transparent);
+}
+.fmt-badge.utility { color: #55dac8; border-color: #55dac84d; background: #55dac812; }
+#tblExplorerBody > tr > td.file-cell { display: table-cell; }
+#tblExplorerBody > tr > td.file-cell > .file-icon-svg { display: inline-flex; vertical-align: middle; margin-right: 8px; }
+@media (prefers-reduced-motion: reduce) { .action-card, .tool-icon-btn { transition: none; } }
+
 @media (max-width: 720px) {
   .brand-title-wrap { display: none; }
   .nav-brand { padding-right: 5px; }

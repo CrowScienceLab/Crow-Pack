@@ -1,5 +1,5 @@
 """
-Crow Pack - Engine Test Suite
+CrowPack - Engine Test Suite
 한글 파일명, 포맷별 압축/해제, 스마트 풀기 기능 검증 테스트
 """
 
@@ -30,7 +30,7 @@ class TestCrowPressEngine(unittest.TestCase):
 
         f1 = os.path.join(self.sub_dir, "프로젝트_기획서_2026.txt")
         with open(f1, "w", encoding="utf-8") as f:
-            f.write("Crow Pack 까마구 압축 프로그램 명세서\n한국어 한글 인코딩 테스트")
+            f.write("CrowPack 까마구 압축 프로그램 명세서\n한국어 한글 인코딩 테스트")
         self.sample_files.append(f1)
 
         f2 = os.path.join(self.test_dir, "까마귀_깃털.md")
@@ -97,7 +97,7 @@ class TestCrowPressEngine(unittest.TestCase):
 
     def test_iso_listing_and_selected_copy(self):
         iso_path = os.path.join(self.test_dir, "한글_디스크.iso")
-        payload = "Crow Pack ISO 한글 파일".encode("utf-8")
+        payload = "CrowPack ISO 한글 파일".encode("utf-8")
         iso = pycdlib.PyCdlib()
         iso.new(interchange_level=3, joliet=3, udf="2.60")
         iso.add_directory("/DOCS", joliet_path="/자료", udf_path="/자료")
@@ -136,7 +136,7 @@ class TestCrowPressEngine(unittest.TestCase):
         created = ArchiveManager.create_iso(
             [self.sub_dir, self.sample_files[1]],
             iso_path,
-            volume_label="Crow Pack 자료",
+            volume_label="CrowPack 자료",
         )
         self.assertEqual(created, iso_path)
         self.assertTrue(os.path.isfile(iso_path))

@@ -22,16 +22,16 @@ EXTENSIONS = (
     ".iso",
     ".cbz",
 )
-CAPABILITIES = r"Software\Crow Science Lab\Crow Pack\Capabilities"
+CAPABILITIES = r"Software\Crow Science Lab\CrowPack\Capabilities"
 CLASSES = r"Software\Classes"
 COMMANDS = [
     ("zip", "ZIP으로 압축"),
     ("7z", "7Z로 압축"),
     ("private", "파일명까지 암호화"),
-    ("compress", "Crow Pack으로 압축"),
+    ("compress", "CrowPack으로 압축"),
 ]
 ARCHIVE_COMMANDS = [
-    ("open", "Crow Pack으로 열기"),
+    ("open", "CrowPack으로 열기"),
     ("here", "여기에 풀기"),
     ("smart", "알아서 풀기"),
     ("folder", "새 폴더에 풀기"),
@@ -83,8 +83,8 @@ def register(menu=True):
         prog = "CrowPack." + kind
         icon = base / (kind.lower() + ".ico")
         if not icon.exists():
-            icon = base / "crow_pack.ico"
-        _set(CLASSES + "\\" + prog, "", "Crow Pack " + kind)
+            icon = base / "CrowPack.ico"
+        _set(CLASSES + "\\" + prog, "", "CrowPack " + kind)
         _set(CLASSES + "\\" + prog + r"\DefaultIcon", "", f'"{icon}",0')
         _set(CLASSES + "\\" + prog + r"\shell\open\command", "", command + ' "%1"')
         _set(CAPABILITIES + r"\FileAssociations", ext, prog)
@@ -107,12 +107,12 @@ def register(menu=True):
             pass
         if not current:
             _set(CLASSES + "\\" + ext, "", prog)
-    _set(CAPABILITIES, "ApplicationName", "Crow Pack")
+    _set(CAPABILITIES, "ApplicationName", "CrowPack")
     _set(CAPABILITIES, "ApplicationDescription", "Crow Science Lab file packaging tools")
-    _set(CAPABILITIES, "ApplicationIcon", f'"{base / "crow_pack.ico"}",0')
-    _set(r"Software\RegisteredApplications", "Crow Pack", CAPABILITIES)
+    _set(CAPABILITIES, "ApplicationIcon", f'"{base / "CrowPack.ico"}",0')
+    _set(r"Software\RegisteredApplications", "CrowPack", CAPABILITIES)
     appkey = CLASSES + r"\Applications\CrowPack.exe"
-    _set(appkey, "FriendlyAppName", "Crow Pack")
+    _set(appkey, "FriendlyAppName", "CrowPack")
     _set(appkey + r"\shell\open\command", "", command + ' "%1"')
     for ext in EXTENSIONS:
         _set(appkey + r"\SupportedTypes", ext, "")
@@ -121,8 +121,8 @@ def register(menu=True):
         roots += [(rf"SystemFileAssociations\{ext}", ARCHIVE_COMMANDS) for ext in EXTENSIONS]
         for root, commands in roots:
             menu_key = CLASSES + "\\" + root + r"\shell\CrowPack"
-            _set(menu_key, "MUIVerb", "Crow Pack")
-            _set(menu_key, "Icon", str(base / "crow_pack.ico"))
+            _set(menu_key, "MUIVerb", "CrowPack")
+            _set(menu_key, "Icon", str(base / "CrowPack.ico"))
             _set(menu_key, "SubCommands", "")
             for index, (action, label) in enumerate(commands):
                 key = menu_key + rf"\shell\{index:02d}{action}"
@@ -157,7 +157,7 @@ def unregister():
         with winreg.OpenKey(
             winreg.HKEY_CURRENT_USER, r"Software\RegisteredApplications", 0, winreg.KEY_SET_VALUE
         ) as key:
-            winreg.DeleteValue(key, "Crow Pack")
+            winreg.DeleteValue(key, "CrowPack")
     except OSError:
         pass
     ctypes.windll.shell32.SHChangeNotify(0x08000000, 0, None, None)

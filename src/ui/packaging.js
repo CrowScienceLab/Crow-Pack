@@ -97,15 +97,15 @@ function handleUpdateCheck(result, manual = false) {
     return;
   }
   if (!result.update_available) {
-    if (status) status.textContent = packText('현재 최신 버전입니다.', 'Crow Pack is up to date.');
-    if (manual) alert(`Crow Pack v${result.version}\n${packText('현재 최신 버전을 사용하고 있습니다.', 'You are using the latest version.')}`);
+    if (status) status.textContent = packText('현재 최신 버전입니다.', 'CrowPack is up to date.');
+    if (manual) alert(`CrowPack v${result.version}\n${packText('현재 최신 버전을 사용하고 있습니다.', 'You are using the latest version.')}`);
     return;
   }
   if (status) status.textContent = `${result.latest_tag} ${packText('사용 가능', 'available')}`;
   const size = result.asset_size ? ` (${formatBytes(result.asset_size)})` : '';
   if (result.store_managed) {
     const approved = confirm(
-      `${packText('새 Crow Pack 버전을 사용할 수 있습니다.', 'A new Crow Pack version is available.')}\n\n` +
+      `${packText('새 CrowPack 버전을 사용할 수 있습니다.', 'A new CrowPack version is available.')}\n\n` +
       `${result.version} → ${result.latest_tag}\n` +
       `${packText('Microsoft Store 업데이트 페이지를 여시겠습니까?', 'Open the Microsoft Store update page?')}`
     );
@@ -123,7 +123,7 @@ function handleUpdateCheck(result, manual = false) {
     return;
   }
   const approved = confirm(
-    `${packText('새 Crow Pack 버전을 사용할 수 있습니다.', 'A new Crow Pack version is available.')}\n\n` +
+    `${packText('새 CrowPack 버전을 사용할 수 있습니다.', 'A new CrowPack version is available.')}\n\n` +
     `${result.version} → ${result.latest_tag}${size}\n` +
     `${packText('GitHub에서 설치 파일을 다운로드하고 SHA-256을 확인한 뒤 업데이트하시겠습니까?', 'Download the installer from GitHub, verify its SHA-256, and update now?')}`
   );
@@ -212,7 +212,7 @@ document.addEventListener('DOMContentLoaded', () => {
       <div class="settings-action-row" id="packShellIntegration"><div><strong>탐색기 우클릭 메뉴</strong><span>압축 및 해제 명령을 표시합니다.</span></div><div class="pack-row"><button class="btn" id="packShellOn">사용</button><button class="btn" id="packShellOff">해제</button></div></div>
     </section>
     <section class="settings-section"><h3>업데이트</h3>
-      <div class="settings-action-row"><div><strong>Crow Pack v1.5.3</strong><span id="packUpdateDescription">실행할 때 새 GitHub 릴리스를 자동으로 확인합니다.</span><span id="packUpdateStatus" role="status"></span></div><div id="packUpdateButton"></div></div>
+      <div class="settings-action-row"><div><strong>CrowPack v1.6.0</strong><span id="packUpdateDescription">실행할 때 새 GitHub 릴리스를 자동으로 확인합니다.</span><span id="packUpdateStatus" role="status"></span></div><div id="packUpdateButton"></div></div>
     </section>`);
   document.getElementById('packGeneral').append(document.querySelector('#modalInfoApp .settings-panel'));
   document.getElementById('packUpdateButton').append(document.getElementById('btnToolUpdate'));
@@ -223,7 +223,7 @@ document.addEventListener('DOMContentLoaded', () => {
   for (const [id, label, icon, modal] of [['packToolsButton','도구','tools',tools],['packSettingsButton','설정','settings',settings]]) {
     const b = document.createElement('button'); b.id=id; b.className='tool-icon-btn';
     b.innerHTML = `${window.CrowIcons[icon] || ''}<span class="tool-btn-label">${label}</span>`;
-    b.onclick=()=>{ modal.classList.add('active'); if(modal===settings && AppState.pyBridge) AppState.pyBridge.integrationStatus(r=>{const rows=JSON.parse(r),assigned=rows.filter(x=>x.is_crowpack).length,seven=rows.find(x=>x.extension==='.7z');document.getElementById('packAssociations').textContent=packText(`${rows.length}개 중 ${assigned}개가 Crow Pack에 연결됨 · .7z: ${seven?.handler || '미지정'}`,`${assigned} of ${rows.length} types use Crow Pack · .7z: ${seven?.handler || 'Not assigned'}`);}); };
+    b.onclick=()=>{ modal.classList.add('active'); if(modal===settings && AppState.pyBridge) AppState.pyBridge.integrationStatus(r=>{const rows=JSON.parse(r),assigned=rows.filter(x=>x.is_crowpack).length,seven=rows.find(x=>x.extension==='.7z');document.getElementById('packAssociations').textContent=packText(`${rows.length}개 중 ${assigned}개가 CrowPack에 연결됨 · .7z: ${seven?.handler || '미지정'}`,`${assigned} of ${rows.length} types use CrowPack · .7z: ${seven?.handler || 'Not assigned'}`);}); };
     nav.insertBefore(b, document.getElementById('btnToolInfo'));
     b.querySelector('.tool-btn-label').dataset.i18n = id;
     b.dataset.tooltip = label;

@@ -1,5 +1,5 @@
 """
-Crow Pack - Comprehensive Test Suite
+CrowPack - Comprehensive Test Suite
 주요 압축 포맷, 시스템별 재압축 프리셋, 한글 인코딩 및 암호화 종합 검증
 """
 
@@ -28,7 +28,7 @@ class TestCrowPressComprehensive(unittest.TestCase):
 
         self.f1 = os.path.join(self.src_folder, "1_시스템_개요.txt")
         with open(self.f1, "w", encoding="utf-8") as f:
-            f.write("Crow Pack 압축 프로그램 - 까마구 디자인 시스템\n한글 깨짐 방지 테스트")
+            f.write("CrowPack 압축 프로그램 - 까마구 디자인 시스템\n한글 깨짐 방지 테스트")
 
         self.f2 = os.path.join(self.src_folder, "2_아이콘_명세.md")
         with open(self.f2, "w", encoding="utf-8") as f:

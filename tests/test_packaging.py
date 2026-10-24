@@ -26,7 +26,7 @@ class PackagingTests(unittest.TestCase):
         self.addCleanup(self.temp.cleanup)
         self.root = Path(self.temp.name)
         self.source = self.root / "학생 자료.txt"
-        self.source.write_text("Crow Pack sample", encoding="utf-8")
+        self.source.write_text("CrowPack sample", encoding="utf-8")
 
     def archive(self, fmt="ZIP", password=None):
         output = self.root / ("source." + fmt.lower())

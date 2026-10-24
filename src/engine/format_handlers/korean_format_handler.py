@@ -1,5 +1,5 @@
 """
-Crow Pack - Korean Format Handler (ALZ & EGG)
+CrowPack - Korean Format Handler (ALZ & EGG)
 한국 특화 압축 포맷인 ALZ 및 EGG 아카이브를 순수 파이썬으로 파싱하고 해제하는 엔진
 """
 

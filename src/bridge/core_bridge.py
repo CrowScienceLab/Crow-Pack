@@ -1,6 +1,6 @@
 """
-Crow Pack - PySide6 WebChannel Core Bridge
-UI와 파이썬 아카이브 엔진 간의 네이티브 양방향 브릿지 (Crow Pack v1.5.3)
+CrowPack - PySide6 WebChannel Core Bridge
+UI와 파이썬 아카이브 엔진 간의 네이티브 양방향 브릿지 (CrowPack v1.6.0)
 """
 
 import hashlib
@@ -34,8 +34,8 @@ class CoreBridge(ToolsBridge):
     _IMAGE_PREVIEW_EXTENSIONS = {".bmp", ".gif", ".jpeg", ".jpg", ".png", ".webp"}
     _MAX_IMAGE_PREVIEW_BYTES = 20 * 1024**2
     _MAX_IMAGE_PREVIEW_PIXELS = 40_000_000
-    APP_VERSION = "1.5.3"
-    RELEASE_TAG = "v1.5.3"
+    APP_VERSION = "1.6.0"
+    RELEASE_TAG = "v1.6.0"
     STORE_ID = "9NPBKL0XTKQ7"
     STORE_URL = f"ms-windows-store://pdp/?productid={STORE_ID}"
     LATEST_RELEASE_API = "https://api.github.com/repos/CrowScienceLab/Crow-Pack/releases/latest"
@@ -129,7 +129,7 @@ class CoreBridge(ToolsBridge):
         )
         file_path, _ = QFileDialog.getOpenFileName(
             self.parent_widget,
-            "압축 파일 열기 - Crow Pack",
+            "압축 파일 열기 - CrowPack",
             "",
             filter_str
         )
@@ -140,7 +140,7 @@ class CoreBridge(ToolsBridge):
         """읽기 전용으로 탐색할 ISO 이미지 선택 다이얼로그"""
         file_path, _ = QFileDialog.getOpenFileName(
             self.parent_widget,
-            "ISO 이미지 열기 - Crow Pack",
+            "ISO 이미지 열기 - CrowPack",
             "",
             "ISO 디스크 이미지 (*.iso);;모든 파일 (*.*)",
         )
@@ -151,7 +151,7 @@ class CoreBridge(ToolsBridge):
         """압축할 파일들 다중 선택 다이얼로그"""
         file_paths, _ = QFileDialog.getOpenFileNames(
             self.parent_widget,
-            "압축할 파일 추가 - Crow Pack",
+            "압축할 파일 추가 - CrowPack",
             "",
             "모든 파일 (*.*)"
         )
@@ -162,7 +162,7 @@ class CoreBridge(ToolsBridge):
         """압축할 폴더 선택 다이얼로그"""
         folder_path = QFileDialog.getExistingDirectory(
             self.parent_widget,
-            "압축할 폴더 추가 - Crow Pack",
+            "압축할 폴더 추가 - CrowPack",
             ""
         )
         if folder_path:
@@ -313,7 +313,7 @@ class CoreBridge(ToolsBridge):
                 raise PermissionError("파일 이동은 수정 가능한 ZIP에서만 지원합니다. ISO와 기타 형식은 복사만 가능합니다.")
             destination = QFileDialog.getExistingDirectory(
                 self.parent_widget,
-                "파일을 복사할 대상 폴더 선택 - Crow Pack",
+                "파일을 복사할 대상 폴더 선택 - CrowPack",
                 os.path.dirname(os.path.abspath(file_path)),
             )
             if not destination:
@@ -358,7 +358,7 @@ class CoreBridge(ToolsBridge):
             else:
                 dest_base = QFileDialog.getExistingDirectory(
                     self.parent_widget,
-                    "압축 해제할 대상 폴더 선택 - Crow Pack",
+                    "압축 해제할 대상 폴더 선택 - CrowPack",
                     os.path.dirname(os.path.abspath(file_path))
                 )
                 if not dest_base:
@@ -416,7 +416,7 @@ class CoreBridge(ToolsBridge):
             if change_folder:
                 save_path, _ = QFileDialog.getSaveFileName(
                     self.parent_widget,
-                    "압축 파일 저장 위치 지정 - Crow Pack",
+                    "압축 파일 저장 위치 지정 - CrowPack",
                     default_out,
                     f"{format_type} 파일 (*{ext});;모든 파일 (*.*)"
                 )
@@ -488,7 +488,7 @@ class CoreBridge(ToolsBridge):
             default_output = os.path.join(os.path.dirname(first_path), f"{stem}.iso")
             output_path, _ = QFileDialog.getSaveFileName(
                 self.parent_widget,
-                "ISO 이미지 저장 위치 - Crow Pack",
+                "ISO 이미지 저장 위치 - CrowPack",
                 default_output,
                 "ISO 디스크 이미지 (*.iso)",
             )
@@ -529,7 +529,7 @@ class CoreBridge(ToolsBridge):
         try:
             input_path, _ = QFileDialog.getOpenFileName(
                 self.parent_widget,
-                "분석할 PDF 선택 - Crow Pack",
+                "분석할 PDF 선택 - CrowPack",
                 "",
                 "PDF 문서 (*.pdf)",
             )
@@ -554,7 +554,7 @@ class CoreBridge(ToolsBridge):
             if not input_path:
                 input_path, _ = QFileDialog.getOpenFileName(
                     self.parent_widget,
-                    f"{profile['label']} 처리할 PDF 선택 - Crow Pack",
+                    f"{profile['label']} 처리할 PDF 선택 - CrowPack",
                     "",
                     "PDF 문서 (*.pdf)",
                 )
@@ -570,7 +570,7 @@ class CoreBridge(ToolsBridge):
             }[preset]
             output_path, _ = QFileDialog.getSaveFileName(
                 self.parent_widget,
-                "최적화 PDF 저장 위치 - Crow Pack",
+                "최적화 PDF 저장 위치 - CrowPack",
                 f"{stem}_{suffix}.pdf",
                 "PDF 문서 (*.pdf)",
             )
@@ -671,7 +671,7 @@ class CoreBridge(ToolsBridge):
                 if str(release.get("tag_name", "")).casefold() != latest_tag.casefold():
                     raise ValueError("최신 릴리스가 변경되었습니다. 다시 확인해 주세요.")
                 installer = self._release_installer(release)
-                update_dir = Path(os.environ.get("LOCALAPPDATA", Path.home())) / "Crow Pack" / "Updates"
+                update_dir = Path(os.environ.get("LOCALAPPDATA", Path.home())) / "CrowPack" / "Updates"
                 update_dir.mkdir(parents=True, exist_ok=True)
                 final_path = update_dir / installer["asset_name"]
                 part_path = final_path.with_suffix(final_path.suffix + ".part")
@@ -702,7 +702,7 @@ class CoreBridge(ToolsBridge):
                     "success": True,
                     "version": latest_tag,
                     "installer_path": str(final_path),
-                    "message": "업데이트 설치를 시작합니다. Crow Pack이 잠시 후 종료됩니다.",
+                    "message": "업데이트 설치를 시작합니다. CrowPack이 잠시 후 종료됩니다.",
                 }, ensure_ascii=False))
             except (urllib.error.URLError, TimeoutError, ValueError, OSError, subprocess.SubprocessError) as exc:
                 if part_path:

@@ -1,7 +1,7 @@
 @echo off
 chcp 65001 > nul
 echo ===================================================
-echo   Crow Pack v1.5.3 - EXE 빌드 스크립트
+echo   CrowPack v1.6.0 - EXE 빌드 스크립트
 echo ===================================================
 echo.
 if defined CROW_PYTHON if exist "%CROW_PYTHON%" goto :python_ready
@@ -27,7 +27,7 @@ echo.
 "%CROW_PYTHON%" -m PyInstaller --noconfirm --clean --onedir --windowed ^
     --add-data "src/ui;src/ui" ^
     --add-data "assets;assets" ^
-    --icon "assets/crow_pack.ico" ^
+    --icon "assets/CrowPack.ico" ^
     --version-file "installer/version_info.txt" ^
     --name "CrowPack" ^
     main.py || exit /b 1

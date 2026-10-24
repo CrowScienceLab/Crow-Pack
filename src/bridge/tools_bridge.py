@@ -1,5 +1,6 @@
 """Native dialogs and background jobs for packaging tools."""
 
+import hashlib
 import json
 import os
 import secrets
@@ -25,12 +26,16 @@ from ..engine.packaging_tools import (
 
 class ToolsBridge(QObject):
     toolFinished = Signal(str)
+    dragStatus = Signal(str)
+    _dragReady = Signal(str)
 
     def __init__(self):
         super().__init__()
         self._job = None
         self._drag_manager = None
         self._drag_cache = None
+        self._drag_job = None
+        self._dragReady.connect(self._finish_drag, Qt.QueuedConnection)
 
     @Slot(str, result=str)
     def generatePassword(self, mode):
@@ -81,7 +86,7 @@ class ToolsBridge(QObject):
 
     @Slot(str, result=str)
     def requestPassword(self, label):
-        password, ok = QInputDialog.getText(self.parent_widget, "Crow Pack", label, QLineEdit.Password)
+        password, ok = QInputDialog.getText(self.parent_widget, "CrowPack", label, QLineEdit.Password)
         return password if ok else ""
 
     @Slot(str)
@@ -178,24 +183,51 @@ class ToolsBridge(QObject):
     @Slot(str, str, str, result=str)
     def dragArchiveItems(self, source, selected_json, password):
         try:
+            if self._drag_job and self._drag_job.is_alive():
+                return json.dumps({"success": False, "error": "드래그 파일을 준비 중입니다."})
             if self._drag_manager is None:
                 self._drag_manager = DragExportManager()
-            cache_key = (source, os.path.getmtime(source), selected_json)
-            if self._drag_cache and self._drag_cache[0] == cache_key:
-                paths = self._drag_cache[1]
-            else:
-                paths = self._drag_manager.prepare(source, json.loads(selected_json), password or None)
-                self._drag_cache = (cache_key, paths)
-            if not QApplication.mouseButtons() & Qt.LeftButton:
-                return json.dumps({"success": False, "error": "준비 중 버튼이 놓였습니다. 다시 끌어 주세요."})
-            mime = QMimeData()
-            mime.setUrls([QUrl.fromLocalFile(path) for path in paths])
-            drag = QDrag(self.parent_widget)
-            drag.setMimeData(mime)
-            result = drag.exec(Qt.CopyAction)
-            return json.dumps({"success": True, "copied": result == Qt.CopyAction})
+            stat = os.stat(source)
+            selected = json.loads(selected_json)
+            cache_key = (source, stat.st_mtime_ns, stat.st_size, selected_json,
+                         hashlib.sha256(password.encode()).digest())
+            if self._drag_cache and self._drag_cache[0] == cache_key and all(os.path.exists(p) for p in self._drag_cache[1]):
+                self._finish_drag(json.dumps({"paths": self._drag_cache[1]}))
+                return json.dumps({"success": True})
+            self.dragStatus.emit("드래그 복사할 파일을 준비 중입니다. 마우스 버튼을 누른 채 기다려 주세요.")
+
+            def prepare():
+                try:
+                    paths = self._drag_manager.prepare(source, selected, password or None)
+                    self._drag_cache = (cache_key, paths)
+                    self._dragReady.emit(json.dumps({"paths": paths}))
+                except Exception as exc:
+                    self._dragReady.emit(json.dumps({"error": str(exc)}))
+
+            self._drag_job = threading.Thread(target=prepare, daemon=False)
+            self._drag_job.start()
+            return json.dumps({"success": True, "preparing": True})
         except Exception as exc:
             return json.dumps({"success": False, "error": str(exc)}, ensure_ascii=False)
+
+    @Slot(str)
+    def _finish_drag(self, payload):
+        try:
+            result = json.loads(payload)
+            if "error" in result:
+                self.dragStatus.emit("드래그 준비 실패: " + result["error"])
+                return
+            if not QApplication.mouseButtons() & Qt.LeftButton:
+                self.dragStatus.emit("복사 준비 완료. 선택 항목을 다시 끌어 놓으세요.")
+                return
+            mime = QMimeData()
+            mime.setUrls([QUrl.fromLocalFile(path) for path in result["paths"]])
+            drag = QDrag(getattr(self.parent_widget, 'web_view', self.parent_widget))
+            drag.setMimeData(mime)
+            action = drag.exec(Qt.CopyAction, Qt.CopyAction)
+            self.dragStatus.emit("드래그 복사를 전달했습니다." if action == Qt.CopyAction else "드래그 복사가 취소되었습니다.")
+        except Exception as exc:
+            self.dragStatus.emit("드래그 복사 실패: " + str(exc))
 
     @Slot(result=str)
     def integrationStatus(self):
@@ -224,4 +256,4 @@ class ToolsBridge(QObject):
             from ..engine.shell_integration import register
 
             register(menu=False)
-            os.startfile("ms-settings:defaultapps?registeredAppUser=Crow%20Pack")
+            os.startfile("ms-settings:defaultapps?registeredAppUser=CrowPack")

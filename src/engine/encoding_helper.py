@@ -1,5 +1,5 @@
 """
-Crow Pack - Encoding & Path Helper
+CrowPack - Encoding & Path Helper
 한국어 인코딩(CP949, EUC-KR, UTF-8) 자동 판별 및 macOS NFD 한글 자소 정규화(NFC) 모듈
 """
 

@@ -1,5 +1,5 @@
 """
-Crow Pack - ZIP Handler
+CrowPack - ZIP Handler
 표준 ZIP 및 macOS/Windows 호환성 최적화 압축 및 해제 핸들러 (반디집급 고급 기능 지원)
 """
 

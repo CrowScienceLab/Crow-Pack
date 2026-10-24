@@ -1,5 +1,5 @@
 /**
- * Crow Pack v1.5.3 - Frontend Interaction Logic
+ * CrowPack v1.6.0 - Frontend Interaction Logic
  * 칠흑 까마귀 테마, 툴바 컨텍스트 전환, 플로팅 툴팁 엔진 및 드래그앤드롭
  */
 
@@ -98,7 +98,7 @@ const TRANSLATIONS = {
     'info.title': 'ℹ️ Help & Info',
     'info.author': 'By Crow Science Lab',
     'info.summary': 'Safely browse, extract, and copy archives and ISO images',
-    'info.help': '<strong>💡 Quick guide:</strong><br>• <strong>Extract</strong>: Open an archive, then extract to the current folder or a chosen folder.<br>• <strong>Create archive</strong>: Drop files or folders, then choose a preset, splitting, and password.<br>• <strong>ISO Image</strong>: Read and copy from an ISO, or create a standard data ISO in the second tab.<br>• <strong>PDF Size</strong>: Analyze the document, then choose one of five presets and Crow Pack applies the detailed settings.',
+    'info.help': '<strong>💡 Quick guide:</strong><br>• <strong>Extract</strong>: Open an archive, then extract to the current folder or a chosen folder.<br>• <strong>Create archive</strong>: Drop files or folders, then choose a preset, splitting, and password.<br>• <strong>ISO Image</strong>: Read and copy from an ISO, or create a standard data ISO in the second tab.<br>• <strong>PDF Size</strong>: Analyze the document, then choose one of five presets and CrowPack applies the detailed settings.',
     'settings.title': '⚙ Display settings',
     'settings.language': 'Language',
     'settings.theme': 'Color theme',
@@ -117,7 +117,7 @@ const STATIC_UI_TRANSLATIONS = {
       '#tblExplorer thead th:nth-child(3)': '원본 크기',
       '#tblExplorer thead th:nth-child(4)': '압축 크기',
       '#tblExplorer thead th:nth-child(5)': '수정 일시',
-      '#modalNewCompress .modal-title': '⚡ 새로 압축하기 (Crow Pack)',
+      '#modalNewCompress .modal-title': '⚡ 새로 압축하기 (CrowPack)',
       '#btnAddSourceFiles': '+ 파일 추가', '#btnAddSourceFolder': '+ 폴더 추가', '#btnClearSourceList': '비우기',
       '#btnCancelCompress': '취소', '#btnCompressHere': '⚡ 이 폴더에 압축', '#btnCompressCustom': '📁 폴더변경 압축',
       '#modalNewCompress .form-item:nth-child(1) .form-label': '시스템 최적화 프리셋',
@@ -165,7 +165,7 @@ const STATIC_UI_TRANSLATIONS = {
       '#btnProgressOpenFolder': '폴더 열기', '#btnProgressClose': '닫기'
     },
     html: {
-      '#btnCardOpenArchive .action-card-desc': 'ALZ, EGG, ZIP, 7Z, RAR 등<br>주요 포맷과 ISO 탐색',
+      '#btnCardOpenArchive .action-card-desc': 'ZIP, 7Z, RAR, TAR 등<br>주요 포맷과 ISO 탐색',
       '#btnCardNewCompress .action-card-desc': '시스템별 최적화 압축<br>분할 압축 및 암호화 지원'
     }
   },
@@ -179,7 +179,7 @@ const STATIC_UI_TRANSLATIONS = {
       '#tblExplorer thead th:nth-child(3)': 'Original size',
       '#tblExplorer thead th:nth-child(4)': 'Packed size',
       '#tblExplorer thead th:nth-child(5)': 'Modified',
-      '#modalNewCompress .modal-title': '⚡ Create Archive (Crow Pack)',
+      '#modalNewCompress .modal-title': '⚡ Create Archive (CrowPack)',
       '#btnAddSourceFiles': '+ Add Files', '#btnAddSourceFolder': '+ Add Folder', '#btnClearSourceList': 'Clear',
       '#btnCancelCompress': 'Cancel', '#btnCompressHere': '⚡ Save Here', '#btnCompressCustom': '📁 Choose Destination',
       '#modalNewCompress .form-item:nth-child(1) .form-label': 'Optimized preset',
@@ -213,7 +213,7 @@ const STATIC_UI_TRANSLATIONS = {
       '#modalPdfOptimize .preset-note': '🔒 No upload · No source overwrite · Signed/encrypted PDFs are not processed',
       '#btnCancelPdfOptimize': 'Cancel', '#btnRunPdfOptimize': 'Save with Selected Quality',
       '#modalCodePage .modal-title': '🌐 Filename Encoding',
-      '#modalCodePage .modal-help-text': 'Choose how Crow Pack should recover legacy archive filenames.',
+      '#modalCodePage .modal-help-text': 'Choose how CrowPack should recover legacy archive filenames.',
       '#modalCodePage .form-row:nth-child(1) span': 'Auto-detect and repair Korean names (recommended)',
       '#modalCodePage .form-row:nth-child(2) span': 'Korean (CP949 / EUC-KR)',
       '#modalCodePage .form-row:nth-child(3) span': 'Unicode (UTF-8)',
@@ -227,7 +227,7 @@ const STATIC_UI_TRANSLATIONS = {
       '#btnProgressOpenFolder': 'Open Folder', '#btnProgressClose': 'Close'
     },
     html: {
-      '#btnCardOpenArchive .action-card-desc': 'ALZ, EGG, ZIP, 7Z, RAR and more<br>Browse archives and ISO images',
+      '#btnCardOpenArchive .action-card-desc': 'ZIP, 7Z, RAR, TAR and more<br>Browse archives and ISO images',
       '#btnCardNewCompress .action-card-desc': 'Optimized presets<br>Splitting and encryption'
     }
   }
@@ -279,8 +279,8 @@ function applyLanguage(language) {
   const selector = document.getElementById('selAppLanguage');
   if (selector) selector.value = AppState.language;
   const tooltipText = AppState.language === 'en'
-    ? ['Read or create an ISO image', 'Optimize PDF size with quality presets', 'Check for Crow Pack updates', 'Connect Crow Pack to Windows file extensions', 'Help, app information, language, and display theme']
-    : ['ISO 이미지 읽기 또는 만들기', '품질 프리셋으로 PDF 용량 조절', 'Crow Pack 업데이트 확인', 'Windows 기본 앱에 Crow Pack 연결', '정보, 사용법, 언어 및 화면 테마 설정'];
+    ? ['Read or create an ISO image', 'Optimize PDF size with quality presets', 'Check for CrowPack updates', 'Connect CrowPack to Windows file extensions', 'Help, app information, language, and display theme']
+    : ['ISO 이미지 읽기 또는 만들기', '품질 프리셋으로 PDF 용량 조절', 'CrowPack 업데이트 확인', 'Windows 기본 앱에 CrowPack 연결', '정보, 사용법, 언어 및 화면 테마 설정'];
   ['btnToolIsoImage', 'btnToolPdfOptimize', 'btnToolUpdate', 'btnToolAssociations', 'btnToolInfo'].forEach((id, index) => {
     const button = document.getElementById(id);
     if (!button) return;
@@ -642,8 +642,8 @@ function renderExplorer() {
     upRow.innerHTML = `
       <td></td>
       <td colspan="4" class="file-cell" style="color: #38bdf8;">
-        <span class="file-icon-svg folder">${window.CrowIcons.folderUp}</span>
-        <strong>[.. 상위 폴더]</strong>
+        <span class="file-icon-svg folder">${window.CrowIcons.folderUp || window.CrowIcons.folder}</span>
+        <strong>${AppState.language === 'en' ? '[Parent folder]' : '[상위 폴더]'}</strong>
       </td>
     `;
     upRow.ondblclick = () => {
@@ -663,9 +663,10 @@ function renderExplorer() {
 
   const selectionNamesForEntry = (entry) => {
     if (!entry.isDir) return [entry.fullName];
-    return info.items
+    const children = info.items
       .map(item => item.name.replace(/\\/g, '/'))
       .filter(name => name && !name.endsWith('/') && name.startsWith(entry.fullName));
+    return children.length ? children : [entry.fullName];
   };
 
   const isEntrySelected = (entry) => {
@@ -698,23 +699,32 @@ function renderExplorer() {
   sortedItems.forEach((entry, index) => {
     const tr = document.createElement('tr');
     tr.dataset.fullName = entry.fullName;
+    let dragStarted = false;
     tr.addEventListener('pointerdown', event => {
       if (event.button !== 0 || event.target.tagName === 'INPUT') return;
+      event.preventDefault();
+      dragStarted = false;
+      if (event.isTrusted) tr.setPointerCapture(event.pointerId);
       const start = {x: event.clientX, y: event.clientY};
       const move = e => {
         if (!(e.buttons & 1)) { tr.removeEventListener('pointermove', move); return; }
         if (Math.hypot(e.clientX-start.x, e.clientY-start.y) < 8) return;
         tr.removeEventListener('pointermove', move);
         if (!AppState.pyBridge) return;
-        if (!AppState.selectedItems.has(entry.fullName)) AppState.selectedItems = new Set([entry.fullName]);
+        dragStarted = true;
+        // Visible directory roots (not the selected leaf set) are the drag payload.
+        const roots = isEntrySelected(entry)
+          ? sortedItems.filter(isEntrySelected).map(item => item.fullName)
+          : [entry.fullName];
         AppState.pyBridge.dragArchiveItems(AppState.currentArchiveInfo.file_path,
-          JSON.stringify([...AppState.selectedItems]), AppState.archivePassword || '', result => {
+          JSON.stringify(roots), AppState.archivePassword || '', result => {
             const response = JSON.parse(result);
             if (!response.success) alert(response.error);
           });
       };
       tr.addEventListener('pointermove', move);
       tr.addEventListener('pointerup', () => tr.removeEventListener('pointermove', move), {once:true});
+      tr.addEventListener('pointercancel', () => tr.removeEventListener('pointermove', move), {once:true});
     });
 
     const isChecked = isEntrySelected(entry);
@@ -766,6 +776,7 @@ function renderExplorer() {
     });
 
     tr.addEventListener('click', (e) => {
+      if (dragStarted) { dragStarted = false; return; }
       applyVisibleSelection(index, e);
       renderExplorer();
     });
@@ -1132,7 +1143,11 @@ function initNativeBridge() {
   if (typeof QWebChannel !== 'undefined') {
     new QWebChannel(qt.webChannelTransport, (channel) => {
       AppState.pyBridge = channel.objects.coreBridge;
-      console.log('PySide6 Native Bridge Connected (Crow Pack v1.5.3)!');
+      if (AppState.pyBridge.dragStatus) AppState.pyBridge.dragStatus.connect(message => {
+        const status = document.getElementById('statExplorerSummary');
+        if (status) status.textContent = message;
+      });
+      console.log('PySide6 Native Bridge Connected (CrowPack v1.6.0)!');
 
       AppState.pyBridge.progressEvent.connect((current, total, file) => {
         updateProgress(current, total, file);
@@ -1230,7 +1245,7 @@ function initEvents() {
     AppState.pyBridge.checkForUpdates((resJson) => {
       const result = JSON.parse(resJson);
       if (result.success) {
-        alert(`Crow Pack v${result.version}\n${result.message}`);
+        alert(`CrowPack v${result.version}\n${result.message}`);
       } else {
         alert(`업데이트 확인 실패\n${result.error}`);
       }

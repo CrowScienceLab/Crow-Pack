@@ -7,13 +7,13 @@ from pathlib import Path
 from PIL import Image
 
 ROOT = Path(__file__).resolve().parents[1]
-SOURCE = ROOT / "assets" / "crow_pack.png"
-OUTPUT = ROOT / "assets" / "crow_pack.ico"
+SOURCE = ROOT / "assets" / "CrowPack.png"
+OUTPUT = ROOT / "assets" / "CrowPack.ico"
 
 
 def main() -> None:
     with Image.open(SOURCE) as image:
-        rgba = image.convert("RGBA")
+        rgba = image.convert("RGBA").resize((1024, 1024), Image.Resampling.LANCZOS)
         rgba.save(
             OUTPUT,
             format="ICO",
