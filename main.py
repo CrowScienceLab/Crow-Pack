@@ -1,6 +1,8 @@
+# SPDX-FileCopyrightText: 2026 Crow Science Lab
+# Official upstream: https://github.com/CrowScienceLab/Crow-Pack
 """
 CrowPack - Main Application Entry Point
-CrowPack v1.6.0 - 압축과 풀기 앱 (제작: Crow Science Lab)
+CrowPack v1.7 - 압축과 풀기 앱 (제작: Crow Science Lab)
 """
 
 import json
@@ -27,10 +29,12 @@ def bundled_path(*parts: str) -> str:
 class LocalOnlyPage(QWebEnginePage):
     """Keep the privileged WebChannel UI on bundled local resources only."""
 
+    def __init__(self, profile, parent, ui_url):
+        super().__init__(profile, parent)
+        self._ui_url = ui_url
+
     def acceptNavigationRequest(self, url, navigation_type, is_main_frame):
-        if is_main_frame and url.scheme().lower() not in {"file", "qrc", "about"}:
-            return False
-        return super().acceptNavigationRequest(url, navigation_type, is_main_frame)
+        return is_main_frame and url == self._ui_url
 
     def createWindow(self, window_type):
         return None
@@ -88,10 +92,11 @@ class CrowPackWindow(QMainWindow):
             self.bridge._drag_manager.close()
         super().closeEvent(event)
 
-    def __init__(self, initial_files=None):
+    def __init__(self, initial_files=None, offer_windows_setup=False):
         super().__init__()
+        self.offer_windows_setup = offer_windows_setup
         # 창 상단 타이틀
-        self.setWindowTitle("CrowPack v1.6.0 - 압축과 풀기 앱")
+        self.setWindowTitle(f"CrowPack {CoreBridge.RELEASE_TAG} - 압축과 풀기 앱")
         self.setWindowIcon(QIcon(bundled_path("assets", "CrowPack.ico")))
         
         # 쾌적하고 균형 잡힌 창 크기 (780 x 520)
@@ -110,7 +115,8 @@ class CrowPackWindow(QMainWindow):
         self.web_view.setContextMenuPolicy(Qt.NoContextMenu)
         self.web_profile = QWebEngineProfile(self)
         self.web_profile.setHttpCacheType(QWebEngineProfile.MemoryHttpCache)
-        self.web_page = LocalOnlyPage(self.web_profile, self.web_view)
+        ui_url = QUrl.fromLocalFile(bundled_path("src", "ui", "index.html"))
+        self.web_page = LocalOnlyPage(self.web_profile, self.web_view, ui_url)
         self.web_view.setPage(self.web_page)
         settings = self.web_view.settings()
         settings.setAttribute(QWebEngineSettings.LocalContentCanAccessRemoteUrls, False)
@@ -125,8 +131,7 @@ class CrowPackWindow(QMainWindow):
         self.web_view.page().setWebChannel(self.channel)
 
         # UI 파일 로드
-        ui_path = bundled_path("src", "ui", "index.html")
-        self.web_view.load(QUrl.fromLocalFile(ui_path))
+        self.web_view.load(ui_url)
 
         self.initial_files = initial_files or []
         self.web_view.loadFinished.connect(self._on_load_finished)
@@ -164,13 +169,21 @@ def main():
 
     initial_files = []
     shell_action = None
-    if '--shell' in sys.argv:
-        index = sys.argv.index('--shell')
-        shell_action = sys.argv[index + 1]
-    if len(sys.argv) > 1:
-        initial_files = [os.path.abspath(p) for p in sys.argv[1:] if os.path.exists(p)]
+    arguments = sys.argv[1:]
+    if '--shell' in arguments:
+        from src.engine.shell_integration import ARCHIVE_COMMANDS, COMMANDS
 
-    window = CrowPackWindow(initial_files)
+        allowed_actions = {name for name, _ in (*COMMANDS, *ARCHIVE_COMMANDS)}
+        shell_args = arguments[arguments.index('--shell') + 1:]
+        if not shell_args or shell_args[0] not in allowed_actions:
+            return
+        shell_action, *arguments = shell_args
+    initial_files = [os.path.abspath(p) for p in arguments if os.path.exists(p)]
+
+    window = CrowPackWindow(
+        initial_files,
+        offer_windows_setup=not initial_files and not shell_action and '--smoke-test' not in arguments,
+    )
     if shell_action:
         # Explorer invokes Document verbs once per selected file; collect locally.
         import getpass
@@ -197,16 +210,30 @@ def main():
             buffer = bytearray()
             def read():
                 buffer.extend(bytes(socket.readAll()))
+                if len(buffer) > 256 * 1024:
+                    socket.disconnectFromServer()
+                    return
                 if b'\n' not in buffer:
                     return
-                action, paths = json.loads(buffer.decode('utf-8').split('\n')[0])
+                socket.disconnectFromServer()
+                try:
+                    payload = json.loads(buffer.split(b'\n', 1)[0])
+                except (ValueError, RecursionError):
+                    return
+                if not isinstance(payload, list) or len(payload) != 2:
+                    return
+                action, paths = payload
+                if (not isinstance(action, str) or action not in allowed_actions
+                        or not isinstance(paths, list) or not paths
+                        or any(not isinstance(path, str) or not os.path.isabs(path) for path in paths)):
+                    return
                 if action == pending[0]:
                     pending[1].extend(p for p in paths if p not in pending[1])
                 else:
                     pending[:] = [action, paths]
                 timer.start(750)
-                socket.disconnectFromServer()
             socket.readyRead.connect(read)
+            socket.disconnected.connect(socket.deleteLater)
             read()
         server.newConnection.connect(receive)
         window.web_view.loadFinished.connect(lambda ok: timer.start(750) if ok else None)

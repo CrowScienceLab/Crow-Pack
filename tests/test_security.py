@@ -18,6 +18,11 @@ from src.engine.archive_safety import ArchiveSecurityError, normalize_member_nam
 
 
 class TestArchiveSecurity(unittest.TestCase):
+    def test_windows_documented_device_aliases_are_blocked(self):
+        for name in ('COM¹.txt', 'LPT³.txt', 'CON .txt'):
+            with self.subTest(name=name), self.assertRaises(ArchiveSecurityError):
+                normalize_member_name(name)
+
     def test_windows_streams_wildcards_and_control_characters_are_blocked(self):
         for name in ('folder/file.txt:secret', 'folder/a?b.txt', 'a*b.txt', 'bad\x01.txt', 'a|b.txt'):
             with self.subTest(name=name), self.assertRaises(ArchiveSecurityError):

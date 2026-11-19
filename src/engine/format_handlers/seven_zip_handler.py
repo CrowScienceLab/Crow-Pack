@@ -12,7 +12,14 @@ from typing import Any, Dict, List, Optional, Tuple
 import py7zr
 import rarfile
 
-from ..archive_safety import DEFAULT_POLICY, iter_source_files, member_is_selected, safe_destination, validate_entries
+from ..archive_safety import (
+    DEFAULT_POLICY,
+    copy_stream_limited,
+    iter_source_files,
+    member_is_selected,
+    safe_destination,
+    validate_entries,
+)
 from ..encoding_helper import normalize_korean_text
 
 
@@ -177,22 +184,14 @@ class RarHandler:
     def extract_single_file_temp(file_path: str, target_item_name: str, password: Optional[str] = None) -> str:
         """RAR 단일 파일 임시 추출"""
         temp_dir = tempfile.mkdtemp(prefix="crow_pack_preview_")
-        with rarfile.RarFile(file_path, 'r') as rf:
-            if password:
-                rf.setpassword(password)
-            info = rf.getinfo(target_item_name)
-            clean_name = normalize_korean_text(info.filename).replace('\\', '/')
-            validate_entries([{
-                "name": clean_name,
-                "size": info.file_size,
-                "compressed_size": info.compress_size,
-                "is_link": info.is_symlink(),
-            }])
-            rf.extract(info, path=temp_dir)
-            dest_file = safe_destination(temp_dir, clean_name)
-            if os.path.exists(dest_file):
-                return dest_file
-        raise FileNotFoundError(f"RAR 파일 내에서 대상을 찾을 수 없습니다: {target_item_name}")
+        try:
+            extracted = RarHandler.extract(file_path, temp_dir, [target_item_name], password)
+            if len(extracted) == 1 and os.path.isfile(extracted[0]):
+                return extracted[0]
+            raise FileNotFoundError(f"RAR 파일 내에서 대상을 찾을 수 없습니다: {target_item_name}")
+        except Exception:
+            shutil.rmtree(temp_dir, ignore_errors=True)
+            raise
 
     @staticmethod
     def extract(file_path: str, target_dir: str, selected_files: Optional[List[str]] = None,
@@ -216,17 +215,22 @@ class RarHandler:
                     "name": clean_name,
                     "size": info.file_size,
                     "compressed_size": info.compress_size,
-                    "is_link": info.is_symlink(),
+                    "is_link": info.is_symlink() or bool(info.file_redir),
                 })
             validate_entries(entries)
-            total = len(infolist)
+            total = len(chosen_infos)
             for idx, (info, clean_name) in enumerate(chosen_infos):
 
                 if progress_callback:
                     progress_callback(idx + 1, total, clean_name)
 
-                rf.extract(info, path=target_dir)
-                extracted.append(safe_destination(target_dir, clean_name))
+                destination = safe_destination(target_dir, clean_name)
+                if info.isdir():
+                    os.makedirs(destination, exist_ok=True)
+                else:
+                    with rf.open(info) as source:
+                        copy_stream_limited(source, destination, info.file_size)
+                extracted.append(destination)
 
         return extracted
 

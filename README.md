@@ -1,4 +1,6 @@
-# CrowPack v1.6.0
+# CrowPack v1.7
+
+1.7은 Command Hub 디자인을 적용하고, 진행 안내·인코딩·PDF 분석의 한영 표시와 압축 해제 및 업데이트 검증을 개선한 버전입니다.
 
 ## 1.6 변경 사항
 
@@ -9,7 +11,7 @@
 홈 형식은 ZIP → 7Z → RAR → TAR.GZ → TAR.XZ → ALZ → EGG → CAB → ISO 순서입니다.
 상세 검증 범위와 아직 필요한 수동 확인은 [1.6 검토 보고서](docs/V1.6-REVIEW.md)를 참고하세요.
 
-## v1.5 주요 기능
+## 주요 기능
 
 - PDF 용량 조절: 무손실 정리부터 이미지 재압축까지 다섯 단계로 목적에 맞게 최적화.
 - CBZ 만들기: 이미지들을 자연 정렬하여 만화·그림 문서로 묶고 미리보기.
@@ -21,7 +23,8 @@
 - 다섯 기능이 항상 보이는 도구 화면, 단순 목록형 설정, 새 CrowPack 앱 아이콘.
 - Windows 클래식 우클릭 메뉴 및 사용자별 확장자 등록.
 - 실행 시 GitHub 최신 릴리스를 확인하고, 사용자 승인 후 설치 파일을 내려받아 SHA-256 검증 후 업데이트.
-- Microsoft Store 설치판은 새 버전을 확인한 뒤 Store 제품 페이지에서 안전하게 업데이트.
+- Microsoft Store 설치판은 Microsoft Store에서 업데이트.
+- 첫 실행 또는 설정에서 파일 형식별 연결 상태 확인, Windows 기본 앱 설정 열기, 설치본의 바탕화면 바로가기 만들기.
 
 보안·Windows 정책·검증 범위는 [v1.5 검증 문서](docs/V1.5-VALIDATION.md)를 참고하세요.
 
@@ -57,8 +60,9 @@ ISO 파일을 직접 끌어다 놓을 수 있습니다. `PDF 용량 조절` 버�
 전자서명 또는 암호화된 PDF는 원본 보호를 위해 변경하지 않습니다.
 
 압축 파일을 열면 모든 파일이 기본 선택됩니다. `Shift+클릭` 범위 선택, `Ctrl+클릭` 개별
-선택과 마우스 오른쪽 버튼 드래그 연속 선택을 지원합니다. 앱 확장자 연결은 CrowPack을
-Windows 연결 후보로 등록하고, 기존 기본 앱이 없는 지원 확장자는 자동 연결합니다.
+선택과 마우스 오른쪽 버튼 드래그 연속 선택을 지원합니다. 설치하면 Windows에서 CrowPack을
+지원 확장자를 열 앱 후보로 등록합니다. GitHub 설치본은 기본 앱이 없는 형식에 한해 Windows의
+레거시 연결을 시도합니다. 연결 상태 조회와 기본 앱 변경은 앱의 Windows 설정에서 시작할 수 있습니다.
 
 `도움말`에서 한국어/English를 선택하고 Black(기본), Bright Skyblue, White Pink
 화면 테마를 바꿀 수 있습니다. 선택은 현재 Windows 사용자에게 저장됩니다. 앱과 파일 연결
@@ -92,7 +96,7 @@ py -3.12 -m venv .venv
 압축 생성·해제와 ISO 파일 복사를 확인한 뒤 배포하세요.
 
 Inno Setup 6을 설치한 뒤 `build_installer.bat`를 실행하면
-`release\CrowPack-v1.6.0-Setup-x64.exe` 설치본이 만들어집니다. 설치는 현재 사용자 영역에
+`release\CrowPack-v1.7-Setup-x64.exe` 설치본이 만들어집니다. 설치는 현재 사용자 영역에
 진행되므로 관리자 권한이 필요하지 않으며 시작 메뉴와 선택형 바탕 화면 바로가기를 제공합니다.
 
 Microsoft Store용 MSIX는 Windows SDK의 `makeappx.exe`가 있는 환경에서 다음 명령으로 만듭니다.
@@ -101,7 +105,7 @@ Microsoft Store용 MSIX는 Windows SDK의 `makeappx.exe`가 있는 환경에서 
 build_msix.bat --makeappx "C:\path\to\x64\makeappx.exe"
 ```
 
-결과는 `release\CrowPack-v1.6.0-Store-x64.msix`이며 Store ID는 `9NPBKL0XTKQ7`입니다.
+결과는 `release\CrowPack-v1.7-Store-x64.msix`이며 Store ID는 `9NPBKL0XTKQ7`입니다.
 
 ## 보안 동작
 
@@ -124,8 +128,8 @@ CrowPack은 사용자 파일을 외부 서버로 전송하지 않으며 모든 �
 - RAR 백엔드를 사용할 경우 UnRAR/WinRAR 7.23 이상 확인
 - `dist` 결과물의 SHA-256 체크섬 생성
 - 저장소의 GitHub 비공개 보안 신고 기능 활성화
-- 공개 라이선스 선택 후 `LICENSE` 추가
 - Git 작성자 이메일이 공개 가능한 주소인지 확인
 
-현재 소스에는 라이선스가 확정되어 있지 않습니다. 저작권자가 라이선스를 선택하기 전에는
-제3자가 복제·수정·재배포할 수 있다고 가정하면 안 됩니다.
+## 저작권 및 공식 원본
+
+© 2026 Crow Science Lab. 수정·재배포 허락, 출처 표기 및 제3자 구성요소의 이용 조건은 [NOTICE.md](NOTICE.md)를 참고하세요.

@@ -21,3 +21,4 @@ release/*.sha256
 associate_extensions.bat
 tests/workspace_*/
 work/
+tmp/

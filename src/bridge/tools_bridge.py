@@ -6,8 +6,10 @@ import os
 import secrets
 import string
 import threading
+from pathlib import Path
+from urllib.parse import quote
 
-from PySide6.QtCore import QMimeData, QObject, Qt, QUrl, Signal, Slot
+from PySide6.QtCore import QMimeData, QObject, QSettings, QStandardPaths, Qt, QUrl, Signal, Slot
 from PySide6.QtGui import QDrag
 from PySide6.QtWidgets import QApplication, QFileDialog, QInputDialog, QLineEdit
 
@@ -35,7 +37,15 @@ class ToolsBridge(QObject):
         self._drag_manager = None
         self._drag_cache = None
         self._drag_job = None
+        self._ui_language = 'ko'
         self._dragReady.connect(self._finish_drag, Qt.QueuedConnection)
+
+    @Slot(str)
+    def setUiLanguage(self, language):
+        self._ui_language = 'en' if language == 'en' else 'ko'
+
+    def _ui_text(self, ko, en):
+        return en if self._ui_language == 'en' else ko
 
     @Slot(str, result=str)
     def generatePassword(self, mode):
@@ -107,12 +117,12 @@ class ToolsBridge(QObject):
                 else:
                     suffix = FORMATS.get(options.get("format"), ".zip")
                 default = "result" + suffix
-                output, _ = QFileDialog.getSaveFileName(self.parent_widget, "저장 위치", default, "All files (*)")
+                output, _ = QFileDialog.getSaveFileName(self.parent_widget, self._ui_text("저장 위치", "Save output"), default, "All files (*)")
                 if not output:
                     self.toolFinished.emit(json.dumps({"success": False, "cancelled": True}))
                     return
             elif action == "batch":
-                output = QFileDialog.getExistingDirectory(self.parent_widget, "해제할 폴더")
+                output = QFileDialog.getExistingDirectory(self.parent_widget, self._ui_text("해제할 폴더", "Choose extraction folder"))
                 if not output:
                     self.toolFinished.emit(json.dumps({"success": False, "cancelled": True}))
                     return
@@ -233,7 +243,33 @@ class ToolsBridge(QObject):
     def integrationStatus(self):
         from ..engine.shell_integration import association_status
 
-        return json.dumps(association_status())
+        return json.dumps(association_status(self._is_packaged()))
+
+    @staticmethod
+    def _windows_setup_key(packaged):
+        return 'windowsSetup/storeSeen' if packaged else 'windowsSetup/githubSeen'
+
+    @Slot()
+    def markWindowsSetupSeen(self):
+        QSettings('Crow Science Lab', 'CrowPack').setValue(self._windows_setup_key(self._is_packaged()), True)
+
+    @Slot(result=str)
+    def createDesktopShortcut(self):
+        from ..engine.shell_integration import create_desktop_shortcut, is_registered_installation
+
+        packaged = self._is_packaged()
+        if not packaged and not is_registered_installation():
+            return json.dumps({"success": False, "error_code": "unsupported"})
+        desktop = QStandardPaths.writableLocation(QStandardPaths.DesktopLocation)
+        try:
+            if not desktop or not Path(desktop).is_dir():
+                raise FileNotFoundError('Windows desktop directory unavailable')
+            state = create_desktop_shortcut(Path(desktop), packaged)
+            return json.dumps({"success": True, "state": state})
+        except FileExistsError:
+            return json.dumps({"success": False, "error_code": "occupied"})
+        except Exception as exc:
+            return json.dumps({"success": False, "error": str(exc)})
 
     @Slot(bool, result=str)
     def setShellIntegration(self, enabled):
@@ -248,12 +284,20 @@ class ToolsBridge(QObject):
         except Exception as exc:
             return json.dumps({"success": False, "error": str(exc)})
 
-    @Slot()
+    @Slot(result=str)
     def openDefaultApps(self):
-        if self._is_packaged():
-            os.startfile("ms-settings:defaultapps?registeredAUMID=170231F2.CrowPack_9fbspzvkgt7f8%21CrowPack")
-        else:
-            from ..engine.shell_integration import register
+        from ..engine.shell_integration import STORE_AUMID, register
 
-            register(menu=False)
-            os.startfile("ms-settings:defaultapps?registeredAppUser=CrowPack")
+        try:
+            if self._is_packaged():
+                uri = 'ms-settings:defaultapps?registeredAUMID=' + quote(STORE_AUMID, safe='')
+            else:
+                register(menu=False)
+                uri = 'ms-settings:defaultapps?registeredAppUser=CrowPack'
+            try:
+                os.startfile(uri)
+            except OSError:
+                os.startfile('ms-settings:defaultapps')
+            return json.dumps({"success": True})
+        except OSError as exc:
+            return json.dumps({"success": False, "error": str(exc)})

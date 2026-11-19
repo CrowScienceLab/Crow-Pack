@@ -1,5 +1,5 @@
 /**
- * CrowPack v1.6.0 - Frontend Interaction Logic
+ * CrowPack v1.7 - Frontend Interaction Logic
  * 칠흑 까마귀 테마, 툴바 컨텍스트 전환, 플로팅 툴팁 엔진 및 드래그앤드롭
  */
 
@@ -18,6 +18,7 @@ const AppState = {
   currentView: 'home', // 'home' | 'explorer'
   currentArchiveInfo: null,
   currentDirectory: '', // 탐색기 내부 가상 디렉터리
+  explorerFilter: '',
   selectedItems: new Set(),
   selectionAnchorIndex: null,
   rightDragSelecting: false,
@@ -37,7 +38,55 @@ const AppState = {
 };
 
 const IMAGE_PREVIEW_PATTERN = /\.(bmp|gif|jpe?g|png|webp)$/i;
+const PDF_FILE_PATTERN = /\.pdf$/i;
+const ARCHIVE_FILE_PATTERN = /\.(zip|7z|rar|tar|gz|tgz|bz2|tbz2|xz|txz|alz|egg|cab|iso|cbz)$/i;
+const EXEC_FILE_PATTERN = /\.(exe|msi|bat|cmd|ps1|vbs|js|scr|com)$/i;
 const ISO_PATTERN = /\.iso$/i;
+
+const FORMAT_TOOLTIPS = {
+  ko: {
+    ZIP: 'ZIP · 읽기/해제/생성 (AES-256 지원)',
+    '7Z': '7Z · 고압축 및 파일명 암호화 지원',
+    RAR: 'RAR · 목록 조회 및 해제 지원',
+    'TAR.GZ': 'TAR.GZ · 리눅스/서버 표준 압축·해제',
+    'TAR.XZ': 'TAR.XZ · 리눅스 고압축·해제',
+    ALZ: 'ALZ · 읽기 및 실험적 해제 지원',
+    EGG: 'EGG · 읽기 및 실험적 해제 지원',
+    CAB: 'CAB · Windows 캐비닛 읽기/해제',
+    ISO: 'ISO · 데이터 ISO 탐색·복사·생성 지원'
+  },
+  en: {
+    ZIP: 'ZIP · Browse, extract & create (AES-256)',
+    '7Z': '7Z · Ultra compression & filename encryption',
+    RAR: 'RAR · Browse & extract support',
+    'TAR.GZ': 'TAR.GZ · Linux/Server standard archive',
+    'TAR.XZ': 'TAR.XZ · High-ratio Linux archive',
+    ALZ: 'ALZ · Browse & experimental extract',
+    EGG: 'EGG · Browse & experimental extract',
+    CAB: 'CAB · Windows cabinet browse & extract',
+    ISO: 'ISO · Browse, copy & create data ISO'
+  }
+};
+
+const uiText = (ko, en) => AppState.language === 'en' ? en : ko;
+
+function showToast(message) {
+  const toast = document.getElementById('crowToast');
+  if (!toast || !message) return;
+  toast.textContent = message;
+  toast.classList.add('show');
+  clearTimeout(toast._timer);
+  toast._timer = setTimeout(() => toast.classList.remove('show'), 2200);
+}
+window.showCrowToast = showToast;
+
+function openOfficialLink(linkKey) {
+  if (!AppState.pyBridge || !AppState.pyBridge.openExternalLink) return;
+  AppState.pyBridge.openExternalLink(linkKey, (resJson) => {
+    const res = JSON.parse(resJson);
+    if (!res.success && res.error) alert(uiText('링크를 열 수 없습니다', 'Could not open the link') + '\n' + res.error);
+  });
+}
 
 const TRANSLATIONS = {
   ko: {
@@ -46,7 +95,23 @@ const TRANSLATIONS = {
     'nav.update': '업데이트 확인',
     'nav.association': '앱 확장자 연결',
     'nav.info': '도움말',
-    'iso.title': '💿 ISO 이미지',
+    'exp.extractHere': '여기에 풀기',
+    'exp.extractCustom': '폴더 지정',
+    'exp.add': '추가',
+    'exp.delete': '삭제',
+    'exp.test': '검사',
+    'exp.encoding': '인코딩',
+    'dock.title': '빠른 도구',
+    'dock.pdf': 'PDF 용량',
+    'dock.iso': 'ISO 이미지',
+    'dock.convert': '포맷 변환',
+    'dock.batch': '일괄 해제',
+    'dock.cbz': 'CBZ 만들기',
+    'dock.privacy': '파일명 암호화',
+    'link.releases': '릴리스',
+    'link.privacy': '개인정보·보안',
+    'home.localBadge': '100% 로컬 처리',
+    'iso.title': 'ISO 이미지',
     'iso.readTab': 'ISO 읽기',
     'iso.createTab': 'ISO 만들기',
     'iso.readHelp': 'ISO 안의 파일을 안전하게 탐색하고 원하는 항목을 폴더로 복사합니다.',
@@ -59,15 +124,24 @@ const TRANSLATIONS = {
     'iso.addFolder': '+ 폴더 추가',
     'iso.volume': '디스크 이름',
     'iso.limit': '부팅 ISO와 4 GiB 이상 단일 파일은 지원하지 않습니다. 원본 파일은 변경되지 않습니다.',
-    'iso.create': '💿 ISO 만들기',
+    'iso.create': 'ISO 만들기',
     'common.clear': '비우기',
     'common.close': '닫기',
     'common.confirm': '확인',
-    'info.title': 'ℹ️ 도움말',
-    'info.author': '제작: Crow Science Lab',
+    'info.title': '도움말',
+    'info.author': '© 2026 Crow Science Lab',
     'info.summary': '압축 파일과 ISO 이미지를 안전하게 탐색·복사',
-    'info.help': '<strong>💡 사용법 안내:</strong><br>• <strong>압축 해제</strong>: 압축 파일을 열면 상단 도구로 현재 폴더 또는 지정 폴더에 풀 수 있습니다.<br>• <strong>새로 압축</strong>: 파일/폴더를 끌어다 놓고 압축 프리셋·분할·암호를 설정합니다.<br>• <strong>ISO 이미지</strong>: 읽기 탭은 ISO를 탐색·복사하고, 만들기 탭은 일반 데이터 ISO를 생성합니다.<br>• <strong>PDF 용량 조절</strong>: 문서 구성을 분석한 뒤 다섯 가지 단계 중 하나를 선택하면 세부 설정은 자동 적용됩니다.',
-    'settings.title': '⚙ 화면 설정',
+    'info.version': '버전 v1.7',
+    'info.linksTitle': '공식 링크 및 배포 채널',
+    'info.linkGithubSub': '공식 원본 및 이슈 제보',
+    'info.linkReleasesTitle': '릴리스 노트',
+    'info.linkReleasesSub': '버전 내역 및 설치 파일',
+    'info.linkStoreSub': '스토어 제품 페이지',
+    'info.linkPrivacyTitle': '개인정보·보안',
+    'info.linkPrivacySub': '로컬 처리 정책 안내',
+    'info.shortcuts': '단축키: Esc 창 닫기 · Ctrl+A 전체 선택 · Ctrl+F 목록 검색 · Backspace 상위 폴더',
+    'info.help': '<strong>사용법 안내:</strong><br>• <strong>압축 해제</strong>: 압축 파일을 열면 상단 도구로 현재 폴더 또는 지정 폴더에 풀 수 있습니다.<br>• <strong>새로 압축</strong>: 파일/폴더를 끌어다 놓고 압축 프리셋·분할·암호를 설정합니다.<br>• <strong>ISO 이미지</strong>: 읽기 탭은 ISO를 탐색·복사하고, 만들기 탭은 일반 데이터 ISO를 생성합니다.<br>• <strong>PDF 용량 조절</strong>: 문서 구성을 분석한 뒤 다섯 가지 단계 중 하나를 선택하면 세부 설정은 자동 적용됩니다.',
+    'settings.title': '화면 설정',
     'settings.language': '언어',
     'settings.theme': '색 테마',
     'theme.dark': 'Black (기본)'
@@ -77,8 +151,24 @@ const TRANSLATIONS = {
     'nav.pdf': 'PDF Size',
     'nav.update': 'Check Updates',
     'nav.association': 'File Associations',
-    'nav.info': 'Help & Info',
-    'iso.title': '💿 ISO Image',
+    'nav.info': 'Help',
+    'exp.extractHere': 'Extract Here',
+    'exp.extractCustom': 'Extract To',
+    'exp.add': 'Add',
+    'exp.delete': 'Delete',
+    'exp.test': 'Test',
+    'exp.encoding': 'Encoding',
+    'dock.title': 'Quick Tools',
+    'dock.pdf': 'PDF Size',
+    'dock.iso': 'ISO Image',
+    'dock.convert': 'Convert',
+    'dock.batch': 'Batch Extract',
+    'dock.cbz': 'Create CBZ',
+    'dock.privacy': 'Encrypt Names',
+    'link.releases': 'Releases',
+    'link.privacy': 'Privacy & Security',
+    'home.localBadge': '100% Local Processing',
+    'iso.title': 'ISO Image',
     'iso.readTab': 'Read ISO',
     'iso.createTab': 'Create ISO',
     'iso.readHelp': 'Browse an ISO safely and copy selected files to a folder.',
@@ -91,15 +181,24 @@ const TRANSLATIONS = {
     'iso.addFolder': '+ Add Folder',
     'iso.volume': 'Volume label',
     'iso.limit': 'Bootable ISOs and individual files of 4 GiB or larger are not supported. Source files are unchanged.',
-    'iso.create': '💿 Create ISO',
+    'iso.create': 'Create ISO',
     'common.clear': 'Clear',
     'common.close': 'Close',
     'common.confirm': 'OK',
-    'info.title': 'ℹ️ Help & Info',
-    'info.author': 'By Crow Science Lab',
+    'info.title': 'Help & About',
+    'info.author': '© 2026 Crow Science Lab',
     'info.summary': 'Safely browse, extract, and copy archives and ISO images',
-    'info.help': '<strong>💡 Quick guide:</strong><br>• <strong>Extract</strong>: Open an archive, then extract to the current folder or a chosen folder.<br>• <strong>Create archive</strong>: Drop files or folders, then choose a preset, splitting, and password.<br>• <strong>ISO Image</strong>: Read and copy from an ISO, or create a standard data ISO in the second tab.<br>• <strong>PDF Size</strong>: Analyze the document, then choose one of five presets and CrowPack applies the detailed settings.',
-    'settings.title': '⚙ Display settings',
+    'info.version': 'Version v1.7',
+    'info.linksTitle': 'Official Links & Channels',
+    'info.linkGithubSub': 'Official source and issue tracker',
+    'info.linkReleasesTitle': 'Release Notes',
+    'info.linkReleasesSub': 'Changelog & signed installers',
+    'info.linkStoreSub': 'Store product listing',
+    'info.linkPrivacyTitle': 'Privacy & Security',
+    'info.linkPrivacySub': 'Offline processing policy',
+    'info.shortcuts': 'Shortcuts: Esc Close modal · Ctrl+A Select all · Ctrl+F Filter · Backspace Parent folder',
+    'info.help': '<strong>Quick guide:</strong><br>• <strong>Extract</strong>: Open an archive, then extract to the current folder or a chosen folder.<br>• <strong>Create archive</strong>: Drop files or folders, then choose a preset, splitting, and password.<br>• <strong>ISO Image</strong>: Read and copy from an ISO, or create a standard data ISO in the second tab.<br>• <strong>PDF Size</strong>: Analyze the document, then choose one of five presets and CrowPack applies the detailed settings.',
+    'settings.title': 'Display settings',
     'settings.language': 'Language',
     'settings.theme': 'Color theme',
     'theme.dark': 'Black (default)'
@@ -117,26 +216,31 @@ const STATIC_UI_TRANSLATIONS = {
       '#tblExplorer thead th:nth-child(3)': '원본 크기',
       '#tblExplorer thead th:nth-child(4)': '압축 크기',
       '#tblExplorer thead th:nth-child(5)': '수정 일시',
-      '#modalNewCompress .modal-title': '⚡ 새로 압축하기 (CrowPack)',
+      '#modalTitleNewCompress': '새로 압축하기',
       '#btnAddSourceFiles': '+ 파일 추가', '#btnAddSourceFolder': '+ 폴더 추가', '#btnClearSourceList': '비우기',
-      '#btnCancelCompress': '취소', '#btnCompressHere': '⚡ 이 폴더에 압축', '#btnCompressCustom': '📁 폴더변경 압축',
+      '#btnCancelCompress': '취소', '#btnCompressHere': '이 폴더에 압축', '#btnCompressCustom': '폴더변경 압축',
       '#modalNewCompress .form-item:nth-child(1) .form-label': '시스템 최적화 프리셋',
       '#modalNewCompress .form-item:nth-child(2) .form-label': '압축 형식',
       '#modalNewCompress .form-item:nth-child(3) .form-label': '분할 압축',
       '#modalNewCompress .form-item:nth-child(4) .form-label': '압축률',
-      '#modalNewCompress .form-item:nth-child(5) .form-label': '암호 설정 (선택 사항)',
       '#selPresetMode option[value="windows"]': 'Windows 호환 (ZIP 표준)',
       '#selPresetMode option[value="linux"]': 'Linux / Server 배포 (TAR.GZ)',
       '#selPresetMode option[value="macos"]': 'macOS / 크로스 (UTF-8 ZIP)',
       '#selPresetMode option[value="ultra7z"]': '고압축 (7Z LZMA2)',
+      '#selCompressFmt option[value="ZIP"]': 'ZIP (표준 호환)',
+      '#selCompressFmt option[value="7Z"]': '7Z (초고압축)',
+      '#selCompressFmt option[value="TAR.GZ"]': 'TAR.GZ (리눅스 배포)',
+      '#selCompressFmt option[value="TAR.XZ"]': 'TAR.XZ (리눅스 고압축)',
       '#selSplitSize option[value="0"]': '분할 안 함',
+      '#selSplitSize option[value="10"]': '10 MB (네이버/다음 메일)',
+      '#selSplitSize option[value="25"]': '25 MB (Gmail 대용량)',
       '#selCompressLevel option[value="6"]': '보통 (권장)',
       '#selCompressLevel option[value="1"]': '빠름',
       '#selCompressLevel option[value="9"]': '최대 압축',
       '#selCompressLevel option[value="0"]': '압축 안 함',
-      '#modalPdfOptimize .modal-title': '📄 PDF 용량 조절',
+      '#modalPdfOptimize .modal-title': 'PDF 용량 조절',
       '#modalPdfOptimize .modal-help-text': '먼저 문서를 분석하면 용량 구성과 권장 단계를 확인할 수 있습니다. 모든 처리는 이 컴퓨터 안에서만 진행됩니다.',
-      '#btnAnalyzePdf': '🔎 PDF 선택·분석',
+      '#btnAnalyzePdf': 'PDF 선택·분석',
       '.pdf-preset-card:nth-child(1) .pdf-preset-title': '무손실 정리',
       '.pdf-preset-card:nth-child(1) .pdf-preset-desc': '그림 변경 없이 내부 구조만 정리',
       '.pdf-preset-card:nth-child(2) .pdf-preset-title': '문서 최적화',
@@ -148,9 +252,9 @@ const STATIC_UI_TRANSLATIONS = {
       '.pdf-preset-card:nth-child(4) .pdf-preset-desc': '화면 열람용, 가장 강한 그림 최적화',
       '.pdf-preset-card:nth-child(5) .pdf-preset-title': '극한 압축',
       '.pdf-preset-card:nth-child(5) .pdf-preset-desc': '페이지를 120 DPI 이미지로 재구성·문서 기능 손실 가능',
-      '#modalPdfOptimize .preset-note': '🔒 외부 서버 전송 없음 · 원본 덮어쓰기 없음 · 전자서명·암호화 PDF 처리 안 함',
+      '#modalPdfOptimize .preset-note': '외부 서버 전송 없음 · 원본 덮어쓰기 없음 · 전자서명·암호화 PDF 처리 안 함',
       '#btnCancelPdfOptimize': '취소', '#btnRunPdfOptimize': '선택한 품질로 저장',
-      '#modalCodePage .modal-title': '🌐 코드페이지 / 한글 인코딩 설정',
+      '#modalCodePage .modal-title': '코드페이지 / 한글 인코딩 설정',
       '#modalCodePage .modal-help-text': '압축 파일 내 한글 파일명 깨짐을 방지하기 위한 코드페이지를 선택하세요.',
       '#modalCodePage .form-row:nth-child(1) span': '자동 감지 & 한글 자동복원 (기본 권장)',
       '#modalCodePage .form-row:nth-child(2) span': '한국어 (CP949 / EUC-KR)',
@@ -179,26 +283,31 @@ const STATIC_UI_TRANSLATIONS = {
       '#tblExplorer thead th:nth-child(3)': 'Original size',
       '#tblExplorer thead th:nth-child(4)': 'Packed size',
       '#tblExplorer thead th:nth-child(5)': 'Modified',
-      '#modalNewCompress .modal-title': '⚡ Create Archive (CrowPack)',
+      '#modalTitleNewCompress': 'Create Archive',
       '#btnAddSourceFiles': '+ Add Files', '#btnAddSourceFolder': '+ Add Folder', '#btnClearSourceList': 'Clear',
-      '#btnCancelCompress': 'Cancel', '#btnCompressHere': '⚡ Save Here', '#btnCompressCustom': '📁 Choose Destination',
+      '#btnCancelCompress': 'Cancel', '#btnCompressHere': 'Save Here', '#btnCompressCustom': 'Choose Destination',
       '#modalNewCompress .form-item:nth-child(1) .form-label': 'Optimized preset',
       '#modalNewCompress .form-item:nth-child(2) .form-label': 'Archive format',
       '#modalNewCompress .form-item:nth-child(3) .form-label': 'Split archive',
       '#modalNewCompress .form-item:nth-child(4) .form-label': 'Compression level',
-      '#modalNewCompress .form-item:nth-child(5) .form-label': 'Password (optional)',
-      '#selPresetMode option[value="windows"]': 'Windows compatible (standard ZIP)',
+      '#selPresetMode option[value="windows"]': 'Windows compatible (ZIP)',
       '#selPresetMode option[value="linux"]': 'Linux / Server (TAR.GZ)',
-      '#selPresetMode option[value="macos"]': 'macOS / Cross-platform (UTF-8 ZIP)',
+      '#selPresetMode option[value="macos"]': 'macOS / Cross-platform (ZIP)',
       '#selPresetMode option[value="ultra7z"]': 'High compression (7Z LZMA2)',
+      '#selCompressFmt option[value="ZIP"]': 'ZIP (Standard)',
+      '#selCompressFmt option[value="7Z"]': '7Z (Ultra)',
+      '#selCompressFmt option[value="TAR.GZ"]': 'TAR.GZ (Linux)',
+      '#selCompressFmt option[value="TAR.XZ"]': 'TAR.XZ (Linux Ultra)',
       '#selSplitSize option[value="0"]': 'Do not split',
+      '#selSplitSize option[value="10"]': '10 MB (Email)',
+      '#selSplitSize option[value="25"]': '25 MB (Large mail)',
       '#selCompressLevel option[value="6"]': 'Normal (recommended)',
       '#selCompressLevel option[value="1"]': 'Fast',
       '#selCompressLevel option[value="9"]': 'Maximum',
       '#selCompressLevel option[value="0"]': 'Store only',
-      '#modalPdfOptimize .modal-title': '📄 Adjust PDF Size',
+      '#modalPdfOptimize .modal-title': 'Adjust PDF Size',
       '#modalPdfOptimize .modal-help-text': 'Analyze the document first to see its size profile and recommended preset. Processing stays on this PC.',
-      '#btnAnalyzePdf': '🔎 Select & Analyze PDF',
+      '#btnAnalyzePdf': 'Select & Analyze PDF',
       '.pdf-preset-card:nth-child(1) .pdf-preset-title': 'Lossless Cleanup',
       '.pdf-preset-card:nth-child(1) .pdf-preset-desc': 'Clean internal structure without changing images',
       '.pdf-preset-card:nth-child(2) .pdf-preset-title': 'Document Optimized',
@@ -210,9 +319,9 @@ const STATIC_UI_TRANSLATIONS = {
       '.pdf-preset-card:nth-child(4) .pdf-preset-desc': 'Strongest image optimization for screen viewing',
       '.pdf-preset-card:nth-child(5) .pdf-preset-title': 'Extreme',
       '.pdf-preset-card:nth-child(5) .pdf-preset-desc': 'Rebuild pages as 120 DPI images; document features may be lost',
-      '#modalPdfOptimize .preset-note': '🔒 No upload · No source overwrite · Signed/encrypted PDFs are not processed',
+      '#modalPdfOptimize .preset-note': 'No upload · No source overwrite · Signed/encrypted PDFs are not processed',
       '#btnCancelPdfOptimize': 'Cancel', '#btnRunPdfOptimize': 'Save with Selected Quality',
-      '#modalCodePage .modal-title': '🌐 Filename Encoding',
+      '#modalCodePage .modal-title': 'Filename Encoding',
       '#modalCodePage .modal-help-text': 'Choose how CrowPack should recover legacy archive filenames.',
       '#modalCodePage .form-row:nth-child(1) span': 'Auto-detect and repair Korean names (recommended)',
       '#modalCodePage .form-row:nth-child(2) span': 'Korean (CP949 / EUC-KR)',
@@ -264,7 +373,9 @@ function applyTheme(theme) {
 
 function applyLanguage(language) {
   AppState.language = TRANSLATIONS[language] ? language : 'ko';
+  AppState.pyBridge?.setUiLanguage?.(AppState.language);
   const dictionary = TRANSLATIONS[AppState.language];
+  const isEn = AppState.language === 'en';
   document.documentElement.lang = AppState.language;
   document.querySelectorAll('[data-i18n]').forEach((element) => {
     const translated = dictionary[element.dataset.i18n];
@@ -278,9 +389,23 @@ function applyLanguage(language) {
   if (window.applyPackLanguage) window.applyPackLanguage();
   const selector = document.getElementById('selAppLanguage');
   if (selector) selector.value = AppState.language;
-  const tooltipText = AppState.language === 'en'
-    ? ['Read or create an ISO image', 'Optimize PDF size with quality presets', 'Check for CrowPack updates', 'Connect CrowPack to Windows file extensions', 'Help, app information, language, and display theme']
-    : ['ISO 이미지 읽기 또는 만들기', '품질 프리셋으로 PDF 용량 조절', 'CrowPack 업데이트 확인', 'Windows 기본 앱에 CrowPack 연결', '정보, 사용법, 언어 및 화면 테마 설정'];
+
+  const filterInput = document.getElementById('explorerFilterInput');
+  if (filterInput) {
+    filterInput.placeholder = isEn ? 'Filter items (Ctrl+F)' : '목록 내 검색 (Ctrl+F)';
+    filterInput.setAttribute('aria-label', isEn ? 'Filter archive items' : '목록 내 검색');
+  }
+  const pwdInput = document.getElementById('txtCompressPwd');
+  if (pwdInput) {
+    pwdInput.placeholder = isEn ? 'Enter password' : '비밀번호를 입력하세요.';
+  }
+  if (AppState.pdfAnalysis) renderPdfAnalysis(AppState.pdfAnalysis, false);
+  else document.getElementById('pdfAnalysisSummary').textContent = uiText('분석할 PDF를 선택하세요.', 'Select a PDF to analyze.');
+  refreshEncodingTooltip();
+
+  const tooltipText = isEn
+    ? ['Read or create an ISO image', 'Optimize PDF size with quality presets', 'Check for CrowPack updates', 'Connect CrowPack to Windows file extensions', 'Help, official links, language, and display theme']
+    : ['ISO 이미지 읽기 또는 만들기', '품질 프리셋으로 PDF 용량 조절', 'CrowPack 업데이트 확인', 'Windows 기본 앱에 CrowPack 연결', '정보, 공식 링크, 언어 및 화면 테마 설정'];
   ['btnToolIsoImage', 'btnToolPdfOptimize', 'btnToolUpdate', 'btnToolAssociations', 'btnToolInfo'].forEach((id, index) => {
     const button = document.getElementById(id);
     if (!button) return;
@@ -288,8 +413,49 @@ function applyLanguage(language) {
     button.setAttribute('aria-label', tooltipText[index]);
     button.removeAttribute('title');
   });
+
+  const fmtMap = FORMAT_TOOLTIPS[AppState.language] || FORMAT_TOOLTIPS.ko;
+  document.querySelectorAll('#formatBadgesRow .fmt-badge').forEach((badge) => {
+    const tip = fmtMap[badge.dataset.fmt];
+    if (tip) {
+      badge.dataset.tooltip = tip;
+      badge.setAttribute('aria-label', tip);
+      badge.removeAttribute('title');
+    }
+  });
+
+  const dockTips = isEn
+    ? {
+        btnQuickPdf: 'Analyze and optimize PDF size (5 presets)',
+        btnQuickIso: 'Browse or create a data ISO image',
+        btnQuickConvert: 'Convert archives between ZIP, 7Z, and TAR',
+        btnQuickBatch: 'Extract multiple archives at once',
+        btnQuickCbz: 'Create a naturally sorted CBZ comic archive',
+        btnQuickPrivacy: 'Encrypt both file names and contents (7Z)'
+      }
+    : {
+        btnQuickPdf: '분석 기반 5단계 PDF 용량 조절',
+        btnQuickIso: 'ISO 이미지 탐색 및 생성',
+        btnQuickConvert: '아카이브 포맷 안전 변환',
+        btnQuickBatch: '여러 압축 파일 한 번에 풀기',
+        btnQuickCbz: '자연 정렬 이미지 CBZ 생성',
+        btnQuickPrivacy: '파일명·내용 모두 암호화 (7Z)'
+      };
+  Object.entries(dockTips).forEach(([id, tip]) => {
+    const btn = document.getElementById(id);
+    if (btn) {
+      btn.dataset.tooltip = tip;
+      btn.setAttribute('aria-label', tip);
+      btn.removeAttribute('title');
+    }
+  });
+
   if (document.getElementById('compressFileListPreview')) renderCompressSourceList();
   if (document.getElementById('isoFileListPreview')) renderIsoSourceList();
+  if (AppState.currentArchiveInfo) {
+    showExplorerViewTooltips();
+    updateExplorerStatusBar();
+  }
   savePreference('language', AppState.language);
 }
 
@@ -348,7 +514,7 @@ function previewContextImage() {
   const entry = AppState.contextEntry;
   hideArchiveContextMenu();
   if (!entry || entry.isDir || !AppState.currentArchiveInfo || !AppState.pyBridge) return;
-  showProgress('그림 미리보기 준비 중...', entry.name);
+  showProgress(uiText('그림 미리보기 준비 중...', 'Preparing image preview…'), entry.name);
   AppState.pyBridge.getImagePreview(
     AppState.currentArchiveInfo.file_path,
     entry.fullName,
@@ -357,7 +523,7 @@ function previewContextImage() {
       hideProgress();
       const result = JSON.parse(resJson);
       if (!result.success) {
-        alert('그림 미리보기 실패: ' + result.error);
+        alert(uiText('그림 미리보기 실패: ', 'Image preview failed: ') + result.error);
         return;
       }
       document.getElementById('imagePreviewTitle').textContent = result.name;
@@ -373,7 +539,7 @@ function exportContextItems(moveAfterCopy) {
   if (!AppState.currentArchiveInfo || !AppState.pyBridge) return;
   const items = getContextItems();
   if (items.length === 0) return;
-  showProgress(moveAfterCopy ? '파일 이동 중...' : '파일 복사 중...', items[0]);
+  showProgress(moveAfterCopy ? uiText('파일 이동 중...', 'Moving files…') : uiText('파일 복사 중...', 'Copying files…'), items[0]);
   AppState.pyBridge.exportArchiveItems(
     AppState.currentArchiveInfo.file_path,
     JSON.stringify(items),
@@ -383,14 +549,14 @@ function exportContextItems(moveAfterCopy) {
       const result = JSON.parse(resJson);
       if (!result.success) {
         hideProgress();
-        if (!result.cancelled) alert((moveAfterCopy ? '파일 이동 실패: ' : '파일 복사 실패: ') + result.error);
+        if (!result.cancelled) alert((moveAfterCopy ? uiText('파일 이동 실패: ', 'Could not move files: ') : uiText('파일 복사 실패: ', 'Could not copy files: ')) + result.error);
         return;
       }
       if (moveAfterCopy) {
         hideProgress();
         openArchiveFile(AppState.currentArchiveInfo.file_path);
       } else {
-        finishProgress(`${result.copied_count}개 파일 복사 완료`, result.dest_dir);
+        finishProgress(uiText(`${result.copied_count}개 파일 복사 완료`, `${result.copied_count} file(s) copied`), result.dest_dir);
       }
     }
   );
@@ -400,8 +566,8 @@ function deleteContextItems() {
   hideArchiveContextMenu();
   if (!AppState.currentArchiveInfo || !AppState.pyBridge) return;
   const items = getContextItems();
-  if (items.length === 0 || !confirm(`선택한 ${items.length}개 항목을 ZIP에서 삭제하시겠습니까?`)) return;
-  showProgress('파일 삭제 중...', items[0]);
+  if (items.length === 0 || !confirm(uiText(`선택한 ${items.length}개 항목을 ZIP에서 삭제하시겠습니까?`, `Delete ${items.length} selected item(s) from the ZIP?`))) return;
+  showProgress(uiText('파일 삭제 중...', 'Deleting items…'), items[0]);
   AppState.pyBridge.deleteFilesFromArchive(
     AppState.currentArchiveInfo.file_path,
     JSON.stringify(items),
@@ -409,7 +575,7 @@ function deleteContextItems() {
       hideProgress();
       const result = JSON.parse(resJson);
       if (result.success) openArchiveFile(AppState.currentArchiveInfo.file_path);
-      else alert('파일 삭제 실패: ' + result.error);
+      else alert(uiText('파일 삭제 실패: ', 'Could not delete items: ') + result.error);
     }
   );
 }
@@ -445,6 +611,14 @@ function initIcons() {
   setHtml('iconCardOpen', I.openArchive);
   setHtml('iconCardCompress', I.newArchive);
   setHtml('iconCrumbFolder', I.folder);
+  setHtml('iconExplorerSearch', I.search);
+
+  setHtml('iconQuickPdf', I.pdfOptimize);
+  setHtml('iconQuickIso', I.isoDisc);
+  setHtml('iconQuickConvert', I.convert);
+  setHtml('iconQuickBatch', I.batch);
+  setHtml('iconQuickCbz', I.cbz);
+  setHtml('iconQuickPrivacy', I.privacy);
 }
 
 // --------------------------------------------------------------------------
@@ -515,10 +689,33 @@ function initFloatingTooltips() {
 // --------------------------------------------------------------------------
 // 3. 뷰 전환 및 툴바 컨텍스트 제어 (Home <-> Explorer)
 // --------------------------------------------------------------------------
+function showExplorerViewTooltips() {
+  if (!AppState.currentArchiveInfo) return;
+  const isReadOnly = Boolean(AppState.currentArchiveInfo.is_read_only);
+  const isEn = AppState.language === 'en';
+  const hereButton = document.getElementById('btnToolExtractHere');
+  const customButton = document.getElementById('btnToolExtractCustom');
+  const hereLabel = isReadOnly
+    ? (isEn ? 'Copy ISO files to current folder' : 'ISO 파일을 현재 폴더로 복사')
+    : (isEn ? 'Extract to current folder (smart)' : '현재 폴더에 풀기 (스마트 알아서 풀기)');
+  const customLabel = isReadOnly
+    ? (isEn ? 'Copy ISO files to chosen folder' : 'ISO 파일을 지정 폴더로 복사')
+    : (isEn ? 'Extract to chosen folder' : '폴더 지정하여 풀기');
+  hereButton.setAttribute('aria-label', hereLabel);
+  hereButton.dataset.tooltip = hereLabel;
+  hereButton.removeAttribute('title');
+  customButton.setAttribute('aria-label', customLabel);
+  customButton.dataset.tooltip = customLabel;
+  customButton.removeAttribute('title');
+}
+
 function showHomeView() {
   AppState.currentView = 'home';
   AppState.currentArchiveInfo = null;
   AppState.currentDirectory = '';
+  AppState.explorerFilter = '';
+  const filterInput = document.getElementById('explorerFilterInput');
+  if (filterInput) filterInput.value = '';
   AppState.selectedItems.clear();
   hideArchiveContextMenu();
   
@@ -534,6 +731,9 @@ function showExplorerView(archiveInfo) {
   AppState.currentView = 'explorer';
   AppState.currentArchiveInfo = archiveInfo;
   AppState.currentDirectory = '';
+  AppState.explorerFilter = '';
+  const filterInput = document.getElementById('explorerFilterInput');
+  if (filterInput) filterInput.value = '';
   AppState.selectedItems = new Set(
     archiveInfo.items
       .map(item => item.name.replace(/\\/g, '/'))
@@ -552,16 +752,7 @@ function showExplorerView(archiveInfo) {
   document.getElementById('btnToolAdd').style.display = isReadOnly ? 'none' : '';
   document.getElementById('btnToolDelete').style.display = isReadOnly ? 'none' : '';
   document.getElementById('btnToolCodePage').style.display = isReadOnly ? 'none' : '';
-  const hereButton = document.getElementById('btnToolExtractHere');
-  const customButton = document.getElementById('btnToolExtractCustom');
-  const hereLabel = isReadOnly ? 'ISO 파일을 현재 폴더로 복사' : '현재 폴더에 풀기 (스마트 알아서 풀기)';
-  const customLabel = isReadOnly ? 'ISO 파일을 지정 폴더로 복사' : '폴더 지정하여 풀기';
-  hereButton.setAttribute('aria-label', hereLabel);
-  hereButton.dataset.tooltip = hereLabel;
-  hereButton.removeAttribute('title');
-  customButton.setAttribute('aria-label', customLabel);
-  customButton.dataset.tooltip = customLabel;
-  customButton.removeAttribute('title');
+  showExplorerViewTooltips();
 
   renderExplorer();
 }
@@ -655,11 +846,14 @@ function renderExplorer() {
     tbody.appendChild(upRow);
   }
 
-  const sortedItems = Array.from(currentLevelItems.values()).sort((a, b) => {
-    if (a.isDir && !b.isDir) return -1;
-    if (!a.isDir && b.isDir) return 1;
-    return a.name.localeCompare(b.name);
-  });
+  const filterQuery = (AppState.explorerFilter || '').trim().toLowerCase();
+  const sortedItems = Array.from(currentLevelItems.values())
+    .filter(item => !filterQuery || item.name.toLowerCase().includes(filterQuery))
+    .sort((a, b) => {
+      if (a.isDir && !b.isDir) return -1;
+      if (!a.isDir && b.isDir) return 1;
+      return a.name.localeCompare(b.name);
+    });
 
   const selectionNamesForEntry = (entry) => {
     if (!entry.isDir) return [entry.fullName];
@@ -728,7 +922,15 @@ function renderExplorer() {
     });
 
     const isChecked = isEntrySelected(entry);
-    const iconSvg = entry.isDir ? window.CrowIcons.folder : window.CrowIcons.file;
+    const resolveFileIcon = (name) => {
+      const I = window.CrowIcons;
+      if (IMAGE_PREVIEW_PATTERN.test(name)) return I.fileImage || I.file;
+      if (PDF_FILE_PATTERN.test(name)) return I.filePdf || I.file;
+      if (ARCHIVE_FILE_PATTERN.test(name)) return I.fileArchive || I.file;
+      if (EXEC_FILE_PATTERN.test(name)) return I.fileExec || I.file;
+      return I.file;
+    };
+    const iconSvg = entry.isDir ? window.CrowIcons.folder : resolveFileIcon(entry.name);
     const iconClass = entry.isDir ? 'folder' : '';
 
     const checkboxCell = document.createElement('td');
@@ -845,25 +1047,32 @@ function updateExplorerStatusBar() {
   const selCount = Array.from(AppState.selectedItems).filter(name => !name.endsWith('/')).length;
   const summaryEl = document.getElementById('statExplorerSummary');
   const sizesEl = document.getElementById('statExplorerSizes');
+  const isEn = AppState.language === 'en';
 
   if (selCount > 0) {
-    summaryEl.textContent = `${selCount}개 선택됨 (전체 ${totalFiles}개 파일)`;
+    summaryEl.textContent = isEn
+      ? `${selCount} selected (${totalFiles} files total)`
+      : `${selCount}개 선택됨 (전체 ${totalFiles}개 파일)`;
   } else {
-    summaryEl.textContent = `총 ${totalFiles}개 파일 (${info.dir_count}개 폴더)`;
+    summaryEl.textContent = isEn
+      ? `${totalFiles} files (${info.dir_count} folders)`
+      : `총 ${totalFiles}개 파일 (${info.dir_count}개 폴더)`;
   }
 
-  sizesEl.textContent = `원본 ${formatBytes(info.uncompressed_size)} / 압축 ${formatBytes(info.compressed_size || info.archive_size)} (절감률 ${info.compression_ratio}%)`;
+  sizesEl.textContent = isEn
+    ? `Original ${formatBytes(info.uncompressed_size)} / Packed ${formatBytes(info.compressed_size || info.archive_size)} (Saved ${info.compression_ratio}%)`
+    : `원본 ${formatBytes(info.uncompressed_size)} / 압축 ${formatBytes(info.compressed_size || info.archive_size)} (절감률 ${info.compression_ratio}%)`;
 }
 
 // 파일 임시 추출 및 실행
 function openFileTemp(itemName) {
   if (!AppState.currentArchiveInfo || !AppState.pyBridge) return;
-  showProgress('파일 여는 중...', itemName);
+  showProgress(uiText('파일 여는 중...', 'Opening file…'), itemName);
   AppState.pyBridge.extractSingleAndOpen(AppState.currentArchiveInfo.file_path, itemName, AppState.archivePassword || "", (resJson) => {
     hideProgress();
     const res = JSON.parse(resJson);
     if (!res.success) {
-      alert('파일을 열 수 없습니다: ' + res.error);
+      alert(uiText('파일을 열 수 없습니다: ', 'Could not open the file: ') + res.error);
     }
   });
 }
@@ -907,14 +1116,14 @@ window.handleDroppedFiles = handleDroppedFiles;
 
 function openArchiveFile(filePath) {
   if (!AppState.pyBridge) return;
-  showProgress('아카이브 분석 중...', filePath.split(/[\\/]/).pop());
+  showProgress(uiText('아카이브 분석 중...', 'Reading archive…'), filePath.split(/[\\/]/).pop());
   
   const enc = AppState.selectedEncoding === 'auto' ? '' : AppState.selectedEncoding;
   AppState.pyBridge.listArchive(filePath, "", enc, (resJson) => {
     hideProgress();
     const info = JSON.parse(resJson);
     if (info.error) {
-      alert('압축 파일을 열 수 없습니다: ' + info.error);
+      alert(uiText('압축 파일을 열 수 없습니다: ', 'Could not open the archive: ') + info.error);
       showHomeView();
     } else {
       showExplorerView(info);
@@ -1038,6 +1247,12 @@ function openNewCompressModal() {
 }
 function closeNewCompressModal() {
   document.getElementById('modalNewCompress').classList.remove('active');
+  const pwd = document.getElementById('txtCompressPwd');
+  const conf = document.getElementById('passwordConfirm');
+  const showBtn = document.getElementById('passwordShow');
+  if (pwd) pwd.type = 'password';
+  if (conf) conf.type = 'password';
+  if (showBtn) showBtn.textContent = AppState.language === 'en' ? 'Show' : '표시';
 }
 
 function setIsoTab(tabName) {
@@ -1073,23 +1288,48 @@ function closePdfOptimizeModal() {
   document.getElementById('modalPdfOptimize').classList.remove('active');
 }
 
-function renderPdfAnalysis(analysis) {
+function renderPdfAnalysis(analysis, selectRecommendation = true) {
   AppState.pdfAnalysis = analysis;
   AppState.pdfInputPath = analysis.input_path || '';
   const composition = analysis.composition || {};
   const typeLabels = {
-    scan_or_photo: '스캔·사진 중심',
-    office_document: 'Office·폰트 중심',
-    text_or_vector: '텍스트·벡터 중심',
-    encrypted: '암호화 문서'
+    scan_or_photo: uiText('스캔·사진 중심', 'Scans and photos'),
+    office_document: uiText('Office·폰트 중심', 'Office document and fonts'),
+    text_or_vector: uiText('텍스트·벡터 중심', 'Text and vectors'),
+    encrypted: uiText('암호화 문서', 'Encrypted document')
   };
-  document.getElementById('pdfAnalysisSummary').textContent =
-    `${analysis.filename} · ${analysis.page_count}쪽 · ${formatBytes(analysis.original_size)} · ` +
-    `${typeLabels[analysis.document_type] || analysis.document_type} · ` +
-    `이미지 ${composition.images || 0}% / 폰트 ${composition.fonts || 0}% / 첨부 ${composition.attachments || 0}% · ` +
-    `권장: ${analysis.recommendation_label}`;
-  const recommended = document.querySelector(`input[name="pdfPreset"][value="${analysis.recommendation}"]`);
-  if (recommended) recommended.checked = true;
+  const option = Array.from(document.querySelectorAll('input[name="pdfPreset"]'))
+    .find(input => input.value === analysis.recommendation);
+  const presetLabel = option?.closest('label')?.querySelector('.pdf-preset-title')?.textContent
+    || uiText('처리 불가', 'Unavailable');
+  document.getElementById('pdfAnalysisSummary').textContent = [
+    analysis.filename,
+    uiText(analysis.page_count + '쪽', analysis.page_count + (analysis.page_count === 1 ? ' page' : ' pages')),
+    formatBytes(analysis.original_size),
+    typeLabels[analysis.document_type] ?? '',
+    uiText(
+      '이미지 ' + (composition.images || 0) + '% / 폰트 ' + (composition.fonts || 0) + '% / 첨부 ' + (composition.attachments || 0) + '%',
+      'Images ' + (composition.images || 0) + '% / Fonts ' + (composition.fonts || 0) + '% / Attachments ' + (composition.attachments || 0) + '%'
+    ),
+    uiText('권장: ', 'Recommended: ') + presetLabel
+  ].filter(Boolean).join(' · ');
+  if (selectRecommendation && option) option.checked = true;
+}
+
+function refreshEncodingTooltip() {
+  const labels = {
+    auto: uiText('자동 감지', 'Auto detect'),
+    cp949: uiText('한국어 (CP949)', 'Korean (CP949)'),
+    'utf-8': 'UTF-8',
+    shift_jis: uiText('일본어 (SJIS)', 'Japanese (SJIS)'),
+    gbk: uiText('중국어 (GBK)', 'Chinese (GBK)'),
+    raw: uiText('원본 (Raw)', 'Raw')
+  };
+  const button = document.getElementById('btnToolCodePage');
+  const label = uiText('코드페이지: ', 'Encoding: ') + (labels[AppState.selectedEncoding] || labels.auto);
+  button.setAttribute('data-tooltip', label);
+  button.setAttribute('aria-label', label);
+  button.removeAttribute('title');
 }
 
 function openCodePageModal() {
@@ -1106,7 +1346,7 @@ function closeInfoModal() {
   document.getElementById('modalInfoApp').classList.remove('active');
 }
 
-function showProgress(title, currentFile = "준비 중...") {
+function showProgress(title, currentFile = uiText('준비 중...', 'Preparing…')) {
   const modal = document.getElementById('modalProgress');
   document.getElementById('progressTitleText').textContent = title;
   document.getElementById('progressFileText').textContent = currentFile;
@@ -1126,8 +1366,8 @@ function updateProgress(current, total, filename) {
 function finishProgress(msg, folderPath = null) {
   AppState.lastExtractedFolder = folderPath;
   document.getElementById('progressBarInner').style.width = '100%';
-  document.getElementById('progressPercentLbl').textContent = '100% 완료';
-  document.getElementById('progressTitleText').textContent = '작업 완료!';
+  document.getElementById('progressPercentLbl').textContent = uiText('100% 완료', '100% complete');
+  document.getElementById('progressTitleText').textContent = uiText('작업 완료!', 'Done');
   document.getElementById('progressFileText').textContent = msg;
   document.getElementById('progressDoneBtns').style.display = 'flex';
 }
@@ -1143,11 +1383,12 @@ function initNativeBridge() {
   if (typeof QWebChannel !== 'undefined') {
     new QWebChannel(qt.webChannelTransport, (channel) => {
       AppState.pyBridge = channel.objects.coreBridge;
+      AppState.pyBridge.setUiLanguage(AppState.language);
       if (AppState.pyBridge.dragStatus) AppState.pyBridge.dragStatus.connect(message => {
         const status = document.getElementById('statExplorerSummary');
         if (status) status.textContent = message;
       });
-      console.log('PySide6 Native Bridge Connected (CrowPack v1.6.0)!');
+      console.log('PySide6 Native Bridge Connected (CrowPack v1.7)!');
 
       AppState.pyBridge.progressEvent.connect((current, total, file) => {
         updateProgress(current, total, file);
@@ -1205,7 +1446,7 @@ function initEvents() {
     AppState.pyBridge.analyzePdf((resJson) => {
       const result = JSON.parse(resJson);
       if (result.success) renderPdfAnalysis(result);
-      else if (!result.cancelled) alert('PDF 분석 실패: ' + result.error);
+      else if (!result.cancelled) alert(uiText('PDF 분석 실패: ', 'PDF analysis failed: ') + result.error);
     });
   };
   document.getElementById('btnRunPdfOptimize').onclick = () => {
@@ -1213,26 +1454,30 @@ function initEvents() {
     const preset = selected ? selected.value : 'balanced';
     if (!AppState.pyBridge) return;
     if (preset === 'extreme' && !confirm(
-      '극한 압축은 페이지를 이미지로 다시 만들어 텍스트 선택, 링크, 양식, 주석과 벡터 구조가 사라질 수 있습니다. 계속하시겠습니까?'
+      uiText('극한 압축은 페이지를 이미지로 다시 만들어 텍스트 선택, 링크, 양식, 주석과 벡터 구조가 사라질 수 있습니다. 계속하시겠습니까?', 'Extreme optimization converts pages to images. Selectable text, links, forms, annotations, and vector content may be lost. Continue?')
     )) return;
     closePdfOptimizeModal();
-    showProgress('PDF 용량 줄이는 중...', '원본을 보호하며 새 PDF로 저장합니다.');
+    showProgress(uiText('PDF 용량 줄이는 중...', 'Optimizing PDF…'), uiText('원본을 보호하며 새 PDF로 저장합니다.', 'Saving a separate PDF and preserving the original.'));
     const callback = (resJson) => {
       const result = JSON.parse(resJson);
       if (!result.success) {
         hideProgress();
-        if (!result.cancelled) alert('PDF 최적화 실패: ' + result.error);
+        if (!result.cancelled) alert(uiText('PDF 최적화 실패: ', 'PDF optimization failed: ') + result.error);
         return;
       }
       if (!result.output_path) {
         hideProgress();
-        alert(`${result.message}\n처리 이미지 ${result.images_processed || 0}개 / 제외 ${result.images_skipped || 0}개`);
+        alert(uiText(
+          `${result.message}\n처리 이미지 ${result.images_processed || 0}개 / 제외 ${result.images_skipped || 0}개`,
+          `The selected preset did not reduce file size. The original was kept.\nImages processed: ${result.images_processed || 0} / skipped: ${result.images_skipped || 0}`
+        ));
         return;
       }
       finishProgress(
-        `${result.message} · ${result.compression_ratio}% 감소 · ${formatBytes(result.saved_bytes)} 절감` +
-        `${result.images_processed ? ` · 이미지 ${result.images_processed}개 처리` : ''}` +
-        `${result.pages_rasterized ? ` · ${result.pages_rasterized}쪽 재구성` : ''}`,
+        uiText(`${result.message} · ${result.compression_ratio}% 감소 · ${formatBytes(result.saved_bytes)} 절감`,
+          `PDF optimized · ${result.compression_ratio}% smaller · ${formatBytes(result.saved_bytes)} saved`) +
+        (result.images_processed ? uiText(` · 이미지 ${result.images_processed}개 처리`, ` · Images processed: ${result.images_processed}`) : '') +
+        (result.pages_rasterized ? uiText(` · ${result.pages_rasterized}쪽 재구성`, ` · Pages rasterized: ${result.pages_rasterized}`) : ''),
         result.output_dir
       );
     };
@@ -1257,7 +1502,7 @@ function initEvents() {
     AppState.pyBridge.registerFileAssociations((resJson) => {
       const result = JSON.parse(resJson);
       if (result.success) alert(result.message);
-      else alert('확장자 연결 등록 실패: ' + result.error);
+      else alert(uiText('확장자 연결 등록 실패: ', 'Could not register file associations: ') + result.error);
     });
   };
 
@@ -1285,19 +1530,19 @@ function initEvents() {
 
     const isReadOnly = Boolean(AppState.currentArchiveInfo.is_read_only);
     showProgress(
-      isReadOnly ? 'ISO 파일 복사 중...' : '스마트 압축 풀기 중...',
-      useDefaultDir ? '현재 폴더로 처리 중...' : '지정된 폴더로 처리 중...'
+      isReadOnly ? uiText('ISO 파일 복사 중...', 'Copying ISO files…') : uiText('스마트 압축 풀기 중...', 'Extracting archive…'),
+      useDefaultDir ? uiText('현재 폴더로 처리 중...', 'Using the current folder…') : uiText('지정된 폴더로 처리 중...', 'Using the selected folder…')
     );
 
     if (AppState.pyBridge) {
       AppState.pyBridge.extractArchiveWithOption(archivePath, "smart", useDefaultDir, selJson, AppState.archivePassword || "", (resJson) => {
         const res = JSON.parse(resJson);
         if (res.success) {
-          finishProgress(`${res.extracted_count}개 파일 ${isReadOnly ? '복사' : '해제'} 완료`, res.dest_dir);
+          finishProgress(uiText(`${res.extracted_count}개 파일 ${isReadOnly ? '복사' : '해제'} 완료`, `${res.extracted_count} file(s) ${isReadOnly ? 'copied' : 'extracted'}`), res.dest_dir);
         } else {
           hideProgress();
-          if (res.error && !res.error.includes("취소")) {
-            alert((isReadOnly ? 'ISO 파일 복사 실패: ' : '압축 해제 실패: ') + res.error);
+          if (!res.cancelled && res.error) {
+            alert((isReadOnly ? uiText('ISO 파일 복사 실패: ', 'Could not copy ISO files: ') : uiText('압축 해제 실패: ', 'Extraction failed: ')) + res.error);
           }
         }
       });
@@ -1307,14 +1552,14 @@ function initEvents() {
   // [테스트]
   document.getElementById('btnToolTest').onclick = () => {
     if (!AppState.currentArchiveInfo || !AppState.pyBridge) return;
-    showProgress('무결성 검사 중...', '손상 여부를 테스트하고 있습니다.');
+    showProgress(uiText('무결성 검사 중...', 'Checking archive integrity…'), uiText('손상 여부를 테스트하고 있습니다.', 'Checking for archive damage.'));
     AppState.pyBridge.testArchive(AppState.currentArchiveInfo.file_path, AppState.archivePassword || "", (resJson) => {
       hideProgress();
       const res = JSON.parse(resJson);
       if (res.success) {
-        alert('✅ 무결성 검사 완료: 아카이브에 손상이 없으며 정상입니다.');
+        alert(uiText('✅ 무결성 검사 완료: 아카이브에 손상이 없으며 정상입니다.', 'Archive integrity check passed.'));
       } else {
-        alert('❌ 아카이브 손상 감지: ' + res.error);
+        alert(uiText('❌ 아카이브 손상 감지: ', 'Archive integrity check failed: ') + res.error);
       }
     });
   };
@@ -1325,14 +1570,14 @@ function initEvents() {
     AppState.pyBridge.selectSourceFiles((pathsJson) => {
       const paths = JSON.parse(pathsJson);
       if (paths && paths.length > 0) {
-        showProgress('파일 추가 중...', '아카이브를 갱신하고 있습니다.');
+        showProgress(uiText('파일 추가 중...', 'Adding files…'), uiText('아카이브를 갱신하고 있습니다.', 'Updating archive.'));
         AppState.pyBridge.addFilesToArchive(AppState.currentArchiveInfo.file_path, pathsJson, (resJson) => {
           hideProgress();
           const res = JSON.parse(resJson);
           if (res.success) {
             openArchiveFile(AppState.currentArchiveInfo.file_path);
           } else {
-            alert('파일 추가 실패: ' + res.error);
+            alert(uiText('파일 추가 실패: ', 'Could not add files: ') + res.error);
           }
         });
       }
@@ -1344,19 +1589,19 @@ function initEvents() {
     if (!AppState.currentArchiveInfo || !AppState.pyBridge) return;
     const selItems = Array.from(AppState.selectedItems);
     if (selItems.length === 0) {
-      alert('삭제할 파일을 먼저 체크박스로 선택해주세요.');
+      alert(uiText('삭제할 파일을 먼저 체크박스로 선택해주세요.', 'Select the files to delete first.'));
       return;
     }
-    if (!confirm(`선택한 ${selItems.length}개 항목을 아카이브에서 삭제하시겠습니까?`)) return;
+    if (!confirm(uiText(`선택한 ${selItems.length}개 항목을 아카이브에서 삭제하시겠습니까?`, `Delete ${selItems.length} selected item(s) from the archive?`))) return;
 
-    showProgress('파일 삭제 중...', '아카이브를 갱신하고 있습니다.');
+    showProgress(uiText('파일 삭제 중...', 'Deleting items…'), uiText('아카이브를 갱신하고 있습니다.', 'Updating archive.'));
     AppState.pyBridge.deleteFilesFromArchive(AppState.currentArchiveInfo.file_path, JSON.stringify(selItems), (resJson) => {
       hideProgress();
       const res = JSON.parse(resJson);
       if (res.success) {
         openArchiveFile(AppState.currentArchiveInfo.file_path);
       } else {
-        alert('파일 삭제 실패: ' + res.error);
+        alert(uiText('파일 삭제 실패: ', 'Could not delete items: ') + res.error);
       }
     });
   };
@@ -1364,23 +1609,13 @@ function initEvents() {
   // [코드페이지 모달]
   document.getElementById('btnToolCodePage').onclick = openCodePageModal;
   document.getElementById('btnCloseCodePage').onclick = closeCodePageModal;
+  const btnCancelCodePage = document.getElementById('btnCancelCodePage');
+  if (btnCancelCodePage) btnCancelCodePage.onclick = closeCodePageModal;
   document.getElementById('btnApplyCodePage').onclick = () => {
     const checkedRad = document.querySelector('input[name="radEncoding"]:checked');
     if (checkedRad) {
       AppState.selectedEncoding = checkedRad.value;
-      const labelMap = {
-        'auto': '코드페이지',
-        'cp949': '한국어 (CP949)',
-        'utf-8': 'UTF-8',
-        'shift_jis': '일본어 (SJIS)',
-        'gbk': '중국어 (GBK)',
-        'raw': '원본 (Raw)'
-      };
-      const encTitle = labelMap[AppState.selectedEncoding] || '자동 감지';
-      const btn = document.getElementById('btnToolCodePage');
-      btn.setAttribute('data-tooltip', `코드페이지: ${encTitle}`);
-      btn.setAttribute('aria-label', `코드페이지: ${encTitle}`);
-      btn.removeAttribute('title');
+      refreshEncodingTooltip();
       closeCodePageModal();
 
       if (AppState.currentArchiveInfo) {
@@ -1457,22 +1692,22 @@ function initEvents() {
   };
   document.getElementById('btnCreateIso').onclick = () => {
     if (!AppState.pyBridge || AppState.isoSourcePaths.length === 0) {
-      alert('ISO에 넣을 파일이나 폴더를 추가해주세요.');
+      alert(uiText('ISO에 넣을 파일이나 폴더를 추가해주세요.', 'Add files or folders to the ISO.'));
       return;
     }
     const volumeLabel = document.getElementById('txtIsoVolumeLabel').value.trim() || 'CROW_PACK';
     closeIsoImageModal();
-    showProgress('ISO 이미지 만드는 중...', '파일 구조를 기록하고 있습니다.');
+    showProgress(uiText('ISO 이미지 만드는 중...', 'Creating ISO image…'), uiText('파일 구조를 기록하고 있습니다.', 'Writing the file structure.'));
     AppState.pyBridge.createIsoImage(
       JSON.stringify(AppState.isoSourcePaths),
       volumeLabel,
       (resJson) => {
         const result = JSON.parse(resJson);
         if (result.success) {
-          finishProgress(`ISO 생성 완료: ${result.output_path}`, result.output_dir);
+          finishProgress(uiText(`ISO 생성 완료: ${result.output_path}`, `ISO created: ${result.output_path}`), result.output_dir);
         } else {
           hideProgress();
-          if (!result.cancelled) alert('ISO 생성 실패: ' + result.error);
+          if (!result.cancelled) alert(uiText('ISO 생성 실패: ', 'ISO creation failed: ') + result.error);
         }
       }
     );
@@ -1484,7 +1719,68 @@ function initEvents() {
     if (val === 'windows' || val === 'macos') selFmt.value = 'ZIP';
     else if (val === 'linux') selFmt.value = 'TAR.GZ';
     else if (val === 'ultra7z') selFmt.value = '7Z';
+    const secMode = document.getElementById('securityMode');
+    if (secMode && secMode.value === 'private' && selFmt.value !== '7Z') {
+      secMode.value = selFmt.value === 'ZIP' ? 'zip' : 'none';
+      secMode.dispatchEvent(new Event('change'));
+    } else if (secMode && secMode.value === 'zip' && selFmt.value !== 'ZIP') {
+      secMode.value = selFmt.value === '7Z' ? 'private' : 'none';
+      secMode.dispatchEvent(new Event('change'));
+    }
   };
+
+  document.getElementById('selCompressFmt').onchange = (e) => {
+    const fmt = e.target.value;
+    const secMode = document.getElementById('securityMode');
+    if (!secMode) return;
+    if (secMode.value === 'private' && fmt !== '7Z') {
+      secMode.value = fmt === 'ZIP' ? 'zip' : 'none';
+      secMode.dispatchEvent(new Event('change'));
+    } else if (secMode.value === 'zip' && fmt !== 'ZIP') {
+      secMode.value = fmt === '7Z' ? 'private' : 'none';
+      secMode.dispatchEvent(new Event('change'));
+    }
+  };
+
+  // 홈 빠른 도구(1-Click) 독 & 포맷 뱃지 & 공식 링크
+  document.getElementById('btnQuickPdf').onclick = openPdfOptimizeModal;
+  document.getElementById('btnQuickIso').onclick = openIsoImageModal;
+  document.getElementById('btnQuickConvert').onclick = () => window.openPackTools && window.openPackTools([], 'convert');
+  document.getElementById('btnQuickBatch').onclick = () => window.openPackTools && window.openPackTools([], 'batch');
+  document.getElementById('btnQuickCbz').onclick = () => window.openPackTools && window.openPackTools([], 'cbz');
+  document.getElementById('btnQuickPrivacy').onclick = () => window.openPackTools && window.openPackTools([], 'privacy');
+
+  document.querySelectorAll('#formatBadgesRow .fmt-badge').forEach((badge) => {
+    badge.onclick = () => {
+      const tip = (FORMAT_TOOLTIPS[AppState.language] || FORMAT_TOOLTIPS.ko)[badge.dataset.fmt];
+      if (tip) showToast(tip);
+    };
+  });
+
+  document.querySelectorAll('[data-link]').forEach((btn) => {
+    btn.onclick = () => openOfficialLink(btn.dataset.link);
+  });
+
+  const explorerFilterInput = document.getElementById('explorerFilterInput');
+  if (explorerFilterInput) {
+    explorerFilterInput.oninput = (e) => {
+      AppState.explorerFilter = e.target.value || '';
+      renderExplorer();
+    };
+  }
+
+  // 홈 카드 키보드 접근성 (Enter / Space)
+  ['btnCardOpenArchive', 'btnCardNewCompress'].forEach((id) => {
+    const card = document.getElementById(id);
+    if (card) {
+      card.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          card.click();
+        }
+      });
+    }
+  });
 
   document.getElementById('btnCompressHere').onclick = () => {
     triggerCompress(false);
@@ -1497,7 +1793,7 @@ function initEvents() {
   function triggerCompress(changeFolder) {
     if (window.validateSecurity && !window.validateSecurity()) return;
     if (AppState.compressSourcePaths.length === 0) {
-      alert('압축할 파일이나 폴더를 추가해주세요.');
+      alert(uiText('압축할 파일이나 폴더를 추가해주세요.', 'Add files or folders to compress.'));
       return;
     }
 
@@ -1508,7 +1804,7 @@ function initEvents() {
     const splitMb = parseInt(document.getElementById('selSplitSize').value, 10);
 
     closeNewCompressModal();
-    showProgress('압축 파일 생성 중...', '시스템별 최적화 압축을 진행하고 있습니다.');
+    showProgress(uiText('압축 파일 생성 중...', 'Creating archive…'), uiText('시스템별 최적화 압축을 진행하고 있습니다.', 'Compressing files with the selected settings.'));
 
     if (AppState.pyBridge) {
       AppState.pyBridge.createArchiveWithOption(
@@ -1522,14 +1818,14 @@ function initEvents() {
         (resJson) => {
           const res = JSON.parse(resJson);
           if (res.success) {
-            finishProgress(`아카이브 생성 완료: ${res.output_path}`, res.output_dir);
-            if (pwd) document.getElementById('progressFileText').textContent = '비밀번호는 압축파일과 다른 전달 수단으로 전달하세요.';
+            finishProgress(uiText(`아카이브 생성 완료: ${res.output_path}`, `Archive created: ${res.output_path}`), res.output_dir);
+            if (pwd) document.getElementById('progressFileText').textContent = uiText('비밀번호는 압축파일과 다른 전달 수단으로 전달하세요.', 'Share the password separately from the archive.');
             document.getElementById('txtCompressPwd').value = '';
             if (document.getElementById('passwordConfirm')) document.getElementById('passwordConfirm').value = '';
           } else {
             hideProgress();
-            if (res.error && !res.error.includes("취소")) {
-              alert('압축 생성 실패: ' + res.error);
+            if (!res.cancelled && res.error) {
+              alert(uiText('압축 생성 실패: ', 'Archive creation failed: ') + res.error);
             }
           }
         }
@@ -1573,6 +1869,59 @@ function initEvents() {
   window.addEventListener('blur', hideArchiveContextMenu);
   window.addEventListener('resize', hideArchiveContextMenu);
   document.getElementById('explorerGridContainer').addEventListener('scroll', hideArchiveContextMenu);
+
+  // 전역 키보드 단축키 (Esc 모달/메뉴 닫기, 탐색기 Ctrl+A / Ctrl+F / Backspace)
+  document.addEventListener('keydown', (e) => {
+    if (document.getElementById('packWindowsSetup')?.open) return;
+    if (e.key === 'Escape') {
+      const ctx = document.getElementById('archiveContextMenu');
+      if (ctx && ctx.classList.contains('show')) {
+        hideArchiveContextMenu();
+        return;
+      }
+      const modals = Array.from(document.querySelectorAll('.layer-modal-backdrop.active'));
+      if (modals.length > 0) {
+        const top = modals[modals.length - 1];
+        if (top.id === 'modalProgress' && document.getElementById('progressDoneBtns').style.display === 'none') return;
+        if (top.id === 'modalNewCompress') closeNewCompressModal();
+        else if (top.id === 'modalIsoImage') closeIsoImageModal();
+        else top.classList.remove('active');
+        return;
+      }
+    }
+
+    if (AppState.currentView !== 'explorer') return;
+    if (document.querySelector('.layer-modal-backdrop.active')) return;
+
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'f') {
+      const input = document.getElementById('explorerFilterInput');
+      if (input) {
+        e.preventDefault();
+        input.focus();
+        input.select();
+      }
+      return;
+    }
+
+    if (document.activeElement && ['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName)) {
+      return;
+    }
+
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'a') {
+      e.preventDefault();
+      const chkAll = document.getElementById('chkSelectAll');
+      if (chkAll) {
+        chkAll.checked = true;
+        chkAll.dispatchEvent(new Event('change'));
+      }
+    } else if (e.key === 'Backspace' && AppState.currentDirectory !== '') {
+      e.preventDefault();
+      const parts = AppState.currentDirectory.split('/').filter(Boolean);
+      parts.pop();
+      AppState.currentDirectory = parts.length > 0 ? parts.join('/') + '/' : '';
+      renderExplorer();
+    }
+  });
 
   // HTML5 Drag & Drop 이벤트 리스너
   window.addEventListener('dragover', (e) => {

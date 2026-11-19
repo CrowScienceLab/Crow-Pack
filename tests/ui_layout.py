@@ -77,6 +77,10 @@ def main():
                 if('{view}' === 'settings' && document.querySelector('#packSettings svg'))
                     errors.push('settings contains icon');
                 if('{view}' === 'settings') {{
+                    for (const swatch of document.querySelectorAll('#packSettings .theme-swatch')) {{
+                        const r=swatch.getBoundingClientRect();
+                        if(Math.abs(r.width-r.height)>0.1 || !r.height) errors.push('theme swatch not circular');
+                    }}
                     const body=document.querySelector('#packSettings .modal-body');
                     if(innerWidth >= 700 && innerHeight >= 480 && body.scrollHeight > body.clientHeight+1)
                         errors.push('unnecessary settings scrollbar');

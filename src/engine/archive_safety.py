@@ -28,9 +28,16 @@ DEFAULT_POLICY = ExtractionPolicy()
 
 _WINDOWS_RESERVED_NAMES = {
     "CON", "PRN", "AUX", "NUL",
-    *(f"COM{i}" for i in range(1, 10)),
-    *(f"LPT{i}" for i in range(1, 10)),
+    *(f"{prefix}{digit}" for prefix in ("COM", "LPT") for digit in "123456789¹²³"),
 }
+
+
+def is_link_or_junction(path: str) -> bool:
+    try:
+        info = os.lstat(path)
+    except FileNotFoundError:
+        return False
+    return stat.S_ISLNK(info.st_mode) or getattr(info, 'st_reparse_tag', 0) == stat.IO_REPARSE_TAG_MOUNT_POINT
 
 
 def normalize_member_name(name: str, policy: ExtractionPolicy = DEFAULT_POLICY) -> str:
@@ -56,7 +63,7 @@ def normalize_member_name(name: str, policy: ExtractionPolicy = DEFAULT_POLICY) 
             raise ArchiveSecurityError(f"Windows에서 안전하지 않은 파일명을 차단했습니다: {name}")
         if part.rstrip(" .") != part:
             raise ArchiveSecurityError(f"Windows에서 모호한 경로를 차단했습니다: {name}")
-        if part.split(".", 1)[0].upper() in _WINDOWS_RESERVED_NAMES:
+        if part.split(".", 1)[0].rstrip(" ").upper() in _WINDOWS_RESERVED_NAMES:
             raise ArchiveSecurityError(f"Windows 예약 파일명을 차단했습니다: {name}")
         parts.append(part)
 
@@ -69,15 +76,18 @@ def safe_destination(root: str, member_name: str) -> str:
     """Resolve a member below root, including existing symlink/junction checks."""
     safe_name = normalize_member_name(member_name)
     root_real = os.path.realpath(os.path.abspath(root))
-    destination = os.path.realpath(os.path.join(root_real, *safe_name.split("/")))
+    destination = root_real
+    for part in safe_name.split("/"):
+        destination = os.path.join(destination, part)
+        if is_link_or_junction(destination):
+            raise ArchiveSecurityError(f"해제 경로의 링크 또는 정션을 차단했습니다: {member_name}")
+    destination = os.path.realpath(destination)
     try:
         inside = os.path.commonpath((root_real, destination)) == root_real
     except ValueError:
         inside = False
     if not inside:
         raise ArchiveSecurityError(f"대상 폴더 밖으로 나가는 경로를 차단했습니다: {member_name}")
-    if os.path.lexists(destination) and os.path.islink(destination):
-        raise ArchiveSecurityError(f"심볼릭 링크 대상 덮어쓰기를 차단했습니다: {member_name}")
     return destination
 
 
@@ -162,17 +172,17 @@ def iter_source_files(paths: Iterable[str], output_path: str | None = None):
     seen: set[str] = set()
     for path in paths:
         absolute = os.path.abspath(path)
-        if os.path.islink(absolute):
+        if is_link_or_junction(absolute):
             raise ArchiveSecurityError(f"링크 원본은 압축하지 않습니다: {path}")
         if os.path.isdir(absolute):
             base_dir = os.path.dirname(absolute)
             for root, dirs, files in os.walk(absolute, followlinks=False):
-                linked_dirs = [name for name in dirs if os.path.islink(os.path.join(root, name))]
+                linked_dirs = [name for name in dirs if is_link_or_junction(os.path.join(root, name))]
                 if linked_dirs:
                     raise ArchiveSecurityError(f"링크 폴더는 압축하지 않습니다: {os.path.join(root, linked_dirs[0])}")
                 for filename in files:
                     full_path = os.path.join(root, filename)
-                    if os.path.islink(full_path):
+                    if is_link_or_junction(full_path):
                         raise ArchiveSecurityError(f"링크 파일은 압축하지 않습니다: {full_path}")
                     real_path = os.path.realpath(full_path)
                     if output_real and real_path == output_real:

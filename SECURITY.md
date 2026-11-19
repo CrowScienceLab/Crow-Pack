@@ -2,13 +2,12 @@
 
 ## Supported version
 
-Security fixes are prepared for the latest `1.5.x` release line.
+Security fixes are prepared for the CrowPack `1.7` release line.
 
 ## Reporting a vulnerability
 
 Do not open a public issue containing exploit details or personal data. Use the
-repository owner's private GitHub security advisory channel after the repository
-is published.
+repository owner's private GitHub security advisory channel when it is available.
 
 Include the affected format, a minimal reproduction archive, expected impact,
 and the CrowPack and Python versions. Remove unrelated personal files before

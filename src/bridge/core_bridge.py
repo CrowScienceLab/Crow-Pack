@@ -1,6 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Crow Science Lab
 """
 CrowPack - PySide6 WebChannel Core Bridge
-UI와 파이썬 아카이브 엔진 간의 네이티브 양방향 브릿지 (CrowPack v1.6.0)
+UI와 파이썬 아카이브 엔진 간의 네이티브 양방향 브릿지 (CrowPack v1.7)
 """
 
 import hashlib
@@ -8,14 +9,16 @@ import json
 import os
 import re
 import shutil
+import ssl
 import subprocess
+import tempfile
 import threading
 import urllib.error
 import urllib.parse
 import urllib.request
 from pathlib import Path
 
-from PySide6.QtCore import QBuffer, QByteArray, QIODevice, Qt, QUrl, Signal, Slot
+from PySide6.QtCore import QBuffer, QByteArray, QIODevice, QSettings, Qt, QUrl, Signal, Slot
 from PySide6.QtGui import QDesktopServices, QImageReader
 from PySide6.QtWidgets import QFileDialog
 
@@ -34,13 +37,21 @@ class CoreBridge(ToolsBridge):
     _IMAGE_PREVIEW_EXTENSIONS = {".bmp", ".gif", ".jpeg", ".jpg", ".png", ".webp"}
     _MAX_IMAGE_PREVIEW_BYTES = 20 * 1024**2
     _MAX_IMAGE_PREVIEW_PIXELS = 40_000_000
-    APP_VERSION = "1.6.0"
-    RELEASE_TAG = "v1.6.0"
+    APP_VERSION = "1.7"
+    RELEASE_TAG = f"v{APP_VERSION}"
     STORE_ID = "9NPBKL0XTKQ7"
     STORE_URL = f"ms-windows-store://pdp/?productid={STORE_ID}"
+    EXTERNAL_LINKS = {
+        "github": "https://github.com/CrowScienceLab/Crow-Pack",
+        "releases": "https://github.com/CrowScienceLab/Crow-Pack/releases",
+        "store": STORE_URL,
+        "privacy": "https://github.com/CrowScienceLab/Crow-Pack/blob/main/PRIVACY.md",
+        "security": "https://github.com/CrowScienceLab/Crow-Pack/blob/main/SECURITY.md",
+    }
     LATEST_RELEASE_API = "https://api.github.com/repos/CrowScienceLab/Crow-Pack/releases/latest"
     RELEASE_DOWNLOAD_PREFIX = "/CrowScienceLab/Crow-Pack/releases/download/"
     MAX_INSTALLER_BYTES = 600 * 1024**2
+    MAX_RELEASE_RESPONSE_BYTES = 2 * 1024**2
     
     progressEvent = Signal(int, int, str)
     updateCheckFinished = Signal(str)
@@ -55,7 +66,7 @@ class CoreBridge(ToolsBridge):
 
     @staticmethod
     def _version_tuple(version: str) -> tuple[int, int, int, int]:
-        match = re.fullmatch(r"v?(\d+)\.(\d+)\.(\d+)(?:\.(\d+))?", version.strip(), re.IGNORECASE)
+        match = re.fullmatch(r"v?([0-9]+)\.([0-9]+)(?:\.([0-9]+)(?:\.([0-9]+))?)?", version.strip(), re.IGNORECASE)
         if not match:
             raise ValueError(f"지원하지 않는 버전 형식입니다: {version}")
         return tuple(int(value or 0) for value in match.groups())
@@ -76,12 +87,18 @@ class CoreBridge(ToolsBridge):
 
     @Slot(result=str)
     def getDistributionInfo(self) -> str:
+        from ..engine.shell_integration import is_registered_installation
+
         packaged = self._is_packaged()
+        desktop_setup = packaged or is_registered_installation()
+        seen_setup = QSettings('Crow Science Lab', 'CrowPack').value(self._windows_setup_key(packaged), False, type=bool)
         return json.dumps({
             "packaged": packaged,
             "channel": "microsoft-store" if packaged else "github",
             "store_id": self.STORE_ID,
             "store_url": self.STORE_URL,
+            "desktop_setup": desktop_setup,
+            "offer_windows_setup": desktop_setup and not seen_setup and getattr(self.parent_widget, 'offer_windows_setup', False),
         }, ensure_ascii=False)
 
     @classmethod
@@ -89,22 +106,26 @@ class CoreBridge(ToolsBridge):
         latest_tag = str(release.get("tag_name", "")).strip()
         cls._version_tuple(latest_tag)
         expected_name = f"CrowPack-{latest_tag}-Setup-x64.exe"
-        for asset in release.get("assets", []):
+        assets = release.get('assets', [])
+        if not isinstance(assets, list) or any(not isinstance(asset, dict) for asset in assets):
+            raise ValueError('업데이트 설치 파일 목록이 올바르지 않습니다.')
+        for asset in assets:
             if str(asset.get("name", "")).casefold() != expected_name.casefold():
                 continue
             url = str(asset.get("browser_download_url", ""))
             parsed = urllib.parse.urlparse(url)
             if (
                 parsed.scheme != "https"
-                or parsed.hostname != "github.com"
-                or not parsed.path.casefold().startswith(cls.RELEASE_DOWNLOAD_PREFIX.casefold())
+                or parsed.netloc.lower() != "github.com"
+                or parsed.path.casefold() != f"{cls.RELEASE_DOWNLOAD_PREFIX}{latest_tag}/{expected_name}".casefold()
+                or parsed.params or parsed.query or parsed.fragment
             ):
                 raise ValueError("허용되지 않은 업데이트 다운로드 주소입니다.")
             digest = str(asset.get("digest", ""))
             if not re.fullmatch(r"sha256:[0-9a-fA-F]{64}", digest):
                 raise ValueError("업데이트 설치 파일의 SHA-256 정보가 없습니다.")
-            size = int(asset.get("size", 0))
-            if size <= 0 or size > cls.MAX_INSTALLER_BYTES:
+            size = asset.get("size")
+            if type(size) is not int or not 0 < size <= cls.MAX_INSTALLER_BYTES:
                 raise ValueError("업데이트 설치 파일의 크기가 허용 범위를 벗어났습니다.")
             return {
                 "asset_name": expected_name,
@@ -114,22 +135,36 @@ class CoreBridge(ToolsBridge):
             }
         raise ValueError(f"릴리스에서 {expected_name} 설치 파일을 찾을 수 없습니다.")
 
+    @classmethod
+    def _read_release(cls, response) -> dict:
+        raw = response.read(cls.MAX_RELEASE_RESPONSE_BYTES + 1)
+        if len(raw) > cls.MAX_RELEASE_RESPONSE_BYTES:
+            raise ValueError('GitHub 릴리스 응답의 크기가 허용 범위를 벗어났습니다.')
+        release = json.loads(raw)
+        if not isinstance(release, dict):
+            raise ValueError('GitHub 응답이 올바른 릴리스 정보가 아닙니다.')
+        return release
+
     @Slot(result=str)
     def selectArchiveFile(self) -> str:
         """압축 파일 선택 다이얼로그"""
         filter_str = (
-            "모든 지원 파일 (*.zip *.cbz *.alz *.egg *.7z *.rar *.tar *.tar.gz *.tgz *.tar.bz2 *.tbz2 *.tar.xz *.txz *.cab *.iso);;"
+            self._ui_text("모든 지원 파일", "All supported files")
+            + " (*.zip *.cbz *.alz *.egg *.7z *.rar *.tar *.tar.gz *.tgz *.tar.bz2 *.tbz2 *.tar.xz *.txz *.cab *.iso);;"
             "ZIP 아카이브 (*.zip);;"
             "알집 ALZ / EGG (*.alz *.egg);;"
             "7-Zip 아카이브 (*.7z);;"
             "WinRAR 아카이브 (*.rar);;"
             "TAR 아카이브 (*.tar *.tar.gz *.tar.bz2 *.tar.xz);;"
             "ISO 디스크 이미지 (*.iso);;"
-            "모든 파일 (*.*)"
+            + self._ui_text("모든 파일 (*.*)", "All files (*.*)")
         )
+        if self._ui_language == 'en':
+            filter_str = (filter_str.replace('아카이브', 'archives')
+                          .replace('알집', 'ALZip').replace('디스크 이미지', 'disk images'))
         file_path, _ = QFileDialog.getOpenFileName(
             self.parent_widget,
-            "압축 파일 열기 - CrowPack",
+            self._ui_text("압축 파일 열기 - CrowPack", "Open archive - CrowPack"),
             "",
             filter_str
         )
@@ -140,9 +175,9 @@ class CoreBridge(ToolsBridge):
         """읽기 전용으로 탐색할 ISO 이미지 선택 다이얼로그"""
         file_path, _ = QFileDialog.getOpenFileName(
             self.parent_widget,
-            "ISO 이미지 열기 - CrowPack",
+            self._ui_text("ISO 이미지 열기 - CrowPack", "Open ISO image - CrowPack"),
             "",
-            "ISO 디스크 이미지 (*.iso);;모든 파일 (*.*)",
+            self._ui_text("ISO 디스크 이미지 (*.iso);;모든 파일 (*.*)", "ISO disk images (*.iso);;All files (*.*)"),
         )
         return file_path or ""
 
@@ -151,9 +186,9 @@ class CoreBridge(ToolsBridge):
         """압축할 파일들 다중 선택 다이얼로그"""
         file_paths, _ = QFileDialog.getOpenFileNames(
             self.parent_widget,
-            "압축할 파일 추가 - CrowPack",
+            self._ui_text("압축할 파일 추가 - CrowPack", "Add files to archive - CrowPack"),
             "",
-            "모든 파일 (*.*)"
+            self._ui_text("모든 파일 (*.*)", "All files (*.*)")
         )
         return json.dumps(file_paths or [])
 
@@ -162,7 +197,7 @@ class CoreBridge(ToolsBridge):
         """압축할 폴더 선택 다이얼로그"""
         folder_path = QFileDialog.getExistingDirectory(
             self.parent_widget,
-            "압축할 폴더 추가 - CrowPack",
+            self._ui_text("압축할 폴더 추가 - CrowPack", "Add folder to archive - CrowPack"),
             ""
         )
         if folder_path:
@@ -313,7 +348,7 @@ class CoreBridge(ToolsBridge):
                 raise PermissionError("파일 이동은 수정 가능한 ZIP에서만 지원합니다. ISO와 기타 형식은 복사만 가능합니다.")
             destination = QFileDialog.getExistingDirectory(
                 self.parent_widget,
-                "파일을 복사할 대상 폴더 선택 - CrowPack",
+                self._ui_text("파일을 복사할 대상 폴더 선택 - CrowPack", "Choose copy destination - CrowPack"),
                 os.path.dirname(os.path.abspath(file_path)),
             )
             if not destination:
@@ -358,11 +393,11 @@ class CoreBridge(ToolsBridge):
             else:
                 dest_base = QFileDialog.getExistingDirectory(
                     self.parent_widget,
-                    "압축 해제할 대상 폴더 선택 - CrowPack",
+                    self._ui_text("압축 해제할 대상 폴더 선택 - CrowPack", "Choose extraction folder - CrowPack"),
                     os.path.dirname(os.path.abspath(file_path))
                 )
                 if not dest_base:
-                    return json.dumps({"success": False, "error": "해제 폴더 선택이 취소되었습니다."}, ensure_ascii=False)
+                    return json.dumps({"success": False, "cancelled": True, "error": "해제 폴더 선택이 취소되었습니다."}, ensure_ascii=False)
 
             def on_progress(cur, tot, fn):
                 self.progressEvent.emit(cur, tot, fn)
@@ -416,12 +451,13 @@ class CoreBridge(ToolsBridge):
             if change_folder:
                 save_path, _ = QFileDialog.getSaveFileName(
                     self.parent_widget,
-                    "압축 파일 저장 위치 지정 - CrowPack",
+                    self._ui_text("압축 파일 저장 위치 지정 - CrowPack", "Save archive - CrowPack"),
                     default_out,
-                    f"{format_type} 파일 (*{ext});;모든 파일 (*.*)"
+                    self._ui_text(f"{format_type} 파일 (*{ext});;모든 파일 (*.*)",
+                                  f"{format_type} files (*{ext});;All files (*.*)")
                 )
                 if not save_path:
-                    return json.dumps({"success": False, "error": "압축 저장이 취소되었습니다."}, ensure_ascii=False)
+                    return json.dumps({"success": False, "cancelled": True, "error": "압축 저장이 취소되었습니다."}, ensure_ascii=False)
             else:
                 save_path = default_out
 
@@ -488,7 +524,7 @@ class CoreBridge(ToolsBridge):
             default_output = os.path.join(os.path.dirname(first_path), f"{stem}.iso")
             output_path, _ = QFileDialog.getSaveFileName(
                 self.parent_widget,
-                "ISO 이미지 저장 위치 - CrowPack",
+                self._ui_text("ISO 이미지 저장 위치 - CrowPack", "Save ISO image - CrowPack"),
                 default_output,
                 "ISO 디스크 이미지 (*.iso)",
             )
@@ -529,9 +565,9 @@ class CoreBridge(ToolsBridge):
         try:
             input_path, _ = QFileDialog.getOpenFileName(
                 self.parent_widget,
-                "분석할 PDF 선택 - CrowPack",
+                self._ui_text("분석할 PDF 선택 - CrowPack", "Choose PDF to analyze - CrowPack"),
                 "",
-                "PDF 문서 (*.pdf)",
+                self._ui_text("PDF 문서 (*.pdf)", "PDF documents (*.pdf)"),
             )
             if not input_path:
                 return json.dumps({"success": False, "cancelled": True}, ensure_ascii=False)
@@ -554,9 +590,9 @@ class CoreBridge(ToolsBridge):
             if not input_path:
                 input_path, _ = QFileDialog.getOpenFileName(
                     self.parent_widget,
-                    f"{profile['label']} 처리할 PDF 선택 - CrowPack",
+                    self._ui_text(f"{profile['label']} 처리할 PDF 선택 - CrowPack", "Choose PDF to optimize - CrowPack"),
                     "",
-                    "PDF 문서 (*.pdf)",
+                    self._ui_text("PDF 문서 (*.pdf)", "PDF documents (*.pdf)"),
                 )
             if not input_path:
                 return json.dumps({"success": False, "cancelled": True}, ensure_ascii=False)
@@ -570,9 +606,9 @@ class CoreBridge(ToolsBridge):
             }[preset]
             output_path, _ = QFileDialog.getSaveFileName(
                 self.parent_widget,
-                "최적화 PDF 저장 위치 - CrowPack",
+                self._ui_text("최적화 PDF 저장 위치 - CrowPack", "Save optimized PDF - CrowPack"),
                 f"{stem}_{suffix}.pdf",
-                "PDF 문서 (*.pdf)",
+                self._ui_text("PDF 문서 (*.pdf)", "PDF documents (*.pdf)"),
             )
             if not output_path:
                 return json.dumps({"success": False, "cancelled": True}, ensure_ascii=False)
@@ -596,7 +632,7 @@ class CoreBridge(ToolsBridge):
                 },
             )
             with urllib.request.urlopen(request, timeout=8) as response:  # noqa: S310
-                release = json.load(response)
+                release = self._read_release(response)
             latest_tag = str(release.get("tag_name", "")).strip()
             if not latest_tag:
                 raise ValueError("최신 릴리스 태그가 비어 있습니다.")
@@ -620,11 +656,21 @@ class CoreBridge(ToolsBridge):
                 **installer,
             }, ensure_ascii=False)
 
-        except (urllib.error.URLError, TimeoutError, ValueError, OSError) as e:
+        except (urllib.error.URLError, TimeoutError, ValueError, OSError, RecursionError) as e:
+            if isinstance(e, urllib.error.HTTPError):
+                limited = e.code == 429 or (e.code == 403 and (e.headers or {}).get('X-RateLimit-Remaining') == '0')
+                code = 'rate_limit' if limited else 'http_error'
+            elif isinstance(e, ssl.SSLError) or isinstance(getattr(e, 'reason', None), ssl.SSLError):
+                code = 'tls_error'
+            elif isinstance(e, (ValueError, RecursionError)):
+                code = 'invalid_response'
+            else:
+                code = 'network_error'
             return json.dumps({
                 "success": False,
                 "version": self.APP_VERSION,
                 "update_available": False,
+                "error_code": code,
                 "error": f"GitHub 릴리스를 확인할 수 없습니다: {e}",
             }, ensure_ascii=False)
 
@@ -636,6 +682,19 @@ class CoreBridge(ToolsBridge):
             "success": bool(opened),
             "store_id": self.STORE_ID,
             "error": "Microsoft Store 페이지를 열 수 없습니다." if not opened else "",
+        }, ensure_ascii=False)
+
+    @Slot(str, result=str)
+    def openExternalLink(self, link_key: str) -> str:
+        """Open an allowlisted official CrowPack link in the user's browser or Store."""
+        target = self.EXTERNAL_LINKS.get(str(link_key).strip().lower())
+        if not target:
+            return json.dumps({"success": False, "error": "허용되지 않은 링크입니다."}, ensure_ascii=False)
+        opened = QDesktopServices.openUrl(QUrl(target))
+        return json.dumps({
+            "success": bool(opened),
+            "url": target,
+            "error": "링크를 열 수 없습니다." if not opened else "",
         }, ensure_ascii=False)
 
     @Slot()
@@ -653,6 +712,9 @@ class CoreBridge(ToolsBridge):
     @Slot(str)
     def downloadAndInstallUpdate(self, latest_tag: str):
         """Revalidate, download, hash-check, and launch the approved GitHub installer."""
+        if self._is_packaged():
+            self.updateFinished.emit(json.dumps({"success": False, "error": "Microsoft Store에서 업데이트하세요."}, ensure_ascii=False))
+            return
         if self._update_job and self._update_job.is_alive():
             self.updateFinished.emit(json.dumps({"success": False, "error": "업데이트가 이미 진행 중입니다."}, ensure_ascii=False))
             return
@@ -667,20 +729,22 @@ class CoreBridge(ToolsBridge):
                     headers={"Accept": "application/vnd.github+json", "User-Agent": f"Crow-Pack/{self.APP_VERSION}"},
                 )
                 with urllib.request.urlopen(request, timeout=12) as response:  # noqa: S310
-                    release = json.load(response)
+                    release = self._read_release(response)
                 if str(release.get("tag_name", "")).casefold() != latest_tag.casefold():
                     raise ValueError("최신 릴리스가 변경되었습니다. 다시 확인해 주세요.")
                 installer = self._release_installer(release)
                 update_dir = Path(os.environ.get("LOCALAPPDATA", Path.home())) / "CrowPack" / "Updates"
                 update_dir.mkdir(parents=True, exist_ok=True)
                 final_path = update_dir / installer["asset_name"]
-                part_path = final_path.with_suffix(final_path.suffix + ".part")
                 digest = hashlib.sha256()
                 received = 0
                 download = urllib.request.Request(  # noqa: S310 - URL allowlisted by _release_installer
                     installer["download_url"], headers={"User-Agent": f"Crow-Pack/{self.APP_VERSION}"}
                 )
-                with urllib.request.urlopen(download, timeout=30) as response, part_path.open("wb") as target:  # noqa: S310
+                with urllib.request.urlopen(download, timeout=30) as response, tempfile.NamedTemporaryFile(  # noqa: S310
+                    dir=update_dir, prefix="CrowPack-", suffix=".part", delete=False
+                ) as target:
+                    part_path = Path(target.name)
                     while chunk := response.read(1024 * 1024):
                         received += len(chunk)
                         if received > self.MAX_INSTALLER_BYTES:
@@ -704,7 +768,7 @@ class CoreBridge(ToolsBridge):
                     "installer_path": str(final_path),
                     "message": "업데이트 설치를 시작합니다. CrowPack이 잠시 후 종료됩니다.",
                 }, ensure_ascii=False))
-            except (urllib.error.URLError, TimeoutError, ValueError, OSError, subprocess.SubprocessError) as exc:
+            except (urllib.error.URLError, TimeoutError, ValueError, OSError, RecursionError, subprocess.SubprocessError) as exc:
                 if part_path:
                     try:
                         part_path.unlink(missing_ok=True)
